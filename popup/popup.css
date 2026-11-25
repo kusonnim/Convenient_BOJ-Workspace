@@ -89,9 +89,11 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; }
 
 /* 실행 위치 */
 .row.runner { border-top: 0; }
+.row.runner h2, label[for="runnerChoice"] { flex: none; white-space: nowrap; font-weight: 700; }
+#runnerChoice { min-width: 0; max-width: 100%; }
 .runner-state { display: flex; flex-direction: column; align-items: flex-end; font-size: 12.5px; font-weight: 700; color: var(--muted); }
 .runner-state.on { color: #2B9348; }
-.runner-state small { font-size: 11px; font-weight: 400; color: var(--muted); }
+.runner-state small { font-size: 11px; font-weight: 400; color: var(--muted); text-align: right; }
 .runner-state a { font-size: 11px; font-weight: 600; color: var(--accent); text-decoration: none; }
 .runner-state a:hover { text-decoration: underline; }
-.card > .row.runner + .toggle { border-top: 1px dashed var(--line); }
+.row:has(#runnerChoice) + .toggle { border-top: 1px dashed var(--line); }

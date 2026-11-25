@@ -16,10 +16,10 @@ HOST = Path(__file__).resolve().parents[2] / 'host' / 'cboj_host.py'
 
 
 class HostWire:
-    def __init__(self, temp):
+    def __init__(self, temp, host=HOST):
         env = dict(os.environ, TMP=temp, TEMP=temp, TMPDIR=temp)
         self.proc = subprocess.Popen(
-            [sys.executable, '-u', str(HOST)], stdin=subprocess.PIPE,
+            [sys.executable, '-B', '-u', str(host)], stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
         )
         self.messages = queue.Queue()
@@ -119,7 +119,7 @@ class NativeBaseline(unittest.TestCase):
         return reply
 
     def assert_clean(self):
-        # The host sends its terminal frame just before its finally block.
+        # Allow for the original host's cleanup after its terminal frame.
         deadline = time.monotonic() + 3
         while any(self.temp.glob('cboj_*')) and time.monotonic() < deadline:
             time.sleep(0.025)
@@ -222,6 +222,7 @@ class NativeBaseline(unittest.TestCase):
         # Daemon threads may lose their finally block on interpreter shutdown.
         leftovers = len(list(self.temp.glob('cboj_*')))
         print(f'Job directories remaining after host disconnect: {leftovers}', flush=True)
+        self.assertEqual(leftovers, 0)
 
 
 if __name__ == '__main__':

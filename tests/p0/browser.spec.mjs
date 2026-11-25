@@ -146,6 +146,14 @@ test('missing host uses Wandbox fixtures for C, C++ and Python, including run-on
   await page.locator('#sample-output-2').evaluate(el => el.remove());
   await openPanel(page);
   await expect(page.locator('.cboj-where')).toHaveText('● Wandbox');
+  page.once('dialog', dialog => dialog.dismiss());
+  await page.locator('.cboj-toolbar .run').click();
+  await expect(verdict(page)).toHaveText('중지됨');
+  expect(await lab.worker.evaluate(() => self.fixtureIO.remoteCalls)).toEqual([]);
+  page.on('dialog', async dialog => {
+    expect(dialog.message()).toContain('Wandbox(wandbox.org)');
+    await dialog.accept();
+  });
   for (const [id, template, code, compiler, std] of [
     ['75', '// C ready', 'int main(void) { return 0; }', 'gcc-13.2.0-c', '-std=gnu11'],
     ['95', '// C++ ready', 'int main() {}', 'gcc-13.2.0', '-std=gnu++20'],

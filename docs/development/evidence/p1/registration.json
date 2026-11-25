@@ -1,0 +1,32 @@
+{
+  "key": "HKCU:\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.convenient_boj.runner",
+  "manifest": "%LOCALAPPDATA%\\ConvenientBOJ\\com.convenient_boj.runner.json",
+  "launcher": "%LOCALAPPDATA%\\ConvenientBOJ\\cboj_host.bat",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://mabfdombglhmfnjklbnoglebinejifdi/"
+  ],
+  "installedSourceSHA256": {
+    "cboj_host.py": "3287C06B3BC5940C25E7C956CBAA2264DF27544F1F5980F39203A5CADBE9F004",
+    "process_tree.py": "1FA0B5EE7B16CDBF37ED99E89C957255A59742B75967E6236CE4BFA2C0832D0C",
+    "toolchains.py": "8DCE068D64E9AC6C09D17DAB0174AFE48FED70F666DC2055F95EFF4ED50AF490",
+    "workspace.py": "A7C8C8540887CF44DFC39B75FE76F8A4D1F51386E9A0BDB5999882A03D998AC5"
+  },
+  "otherUserRegistrations": {
+    "Edge": false,
+    "Whale": false
+  },
+  "extensionHostInfo": {
+    "protocol": 2,
+    "type": "info",
+    "version": "2.0.0",
+    "python": "3.14.3",
+    "gcc": "gcc.EXE (Rev4, Built by MSYS2 project) 16.2.0",
+    "gpp": "g++.EXE (Rev4, Built by MSYS2 project) 16.2.0",
+    "msvc": "195136260",
+    "msvcStandards": [
+      "c++17",
+      "c++20"
+    ]
+  }
+}

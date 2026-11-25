@@ -8,7 +8,9 @@
 # 실행: install.bat 더블클릭, 또는
 #   powershell -ExecutionPolicy Bypass -File install.ps1 [-Yes]
 param(
-  [switch]$Yes  # 모든 질문에 '예'로 답하기
+  [switch]$Yes,
+  [switch]$RegisterOnly,  # 설치된 도구만 사용
+  [switch]$ChromeOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -82,7 +84,7 @@ Write-Step 'Python 확인'
 $python = Find-Python
 if (-not $python) {
   Write-Warn 'Python이 없어요. 도우미가 Python으로 동작하고, Python 코드 실행에도 필요해요.'
-  if (Confirm-Action 'winget으로 Python 3.13을 설치할까요?') {
+  if (-not $RegisterOnly -and (Confirm-Action 'winget으로 Python 3.13을 설치할까요?')) {
     Install-WithWinget 'Python.Python.3.13' 'Python 3.13' | Out-Null
     $python = Find-Python
   }
@@ -92,26 +94,34 @@ if (-not $python) {
   exit 1
 }
 Write-Ok "Python: $python"
+& $python -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)'
+if ($LASTEXITCODE -ne 0) { throw 'Python 3.9 이상이 필요해요.' }
 
 # 2) gcc / g++
-Write-Step 'C/C++ 컴파일러(gcc/g++) 확인'
+Write-Step 'C/C++ 컴파일러(MSVC, GCC) 확인'
 $gpp = Find-Gpp
-if (-not $gpp) {
+$programFilesRoot = if (${env:ProgramFiles(x86)}) { ${env:ProgramFiles(x86)} } else { $env:ProgramFiles }
+$vswhere = Join-Path $programFilesRoot 'Microsoft Visual Studio\Installer\vswhere.exe'
+$vs = if (Test-Path -LiteralPath $vswhere) { & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationVersion }
+if ($vs) { Write-Ok "Visual Studio C++ $vs (실행할 때 x64 컴파일 확인)" }
+if (-not $gpp -and -not $vs -and -not $RegisterOnly) {
   Write-Warn 'gcc/g++가 없어요. C/C++ 코드를 내 PC에서 실행하려면 필요해요. (Python만 쓰면 없어도 돼요)'
   if (Confirm-Action 'winget으로 WinLibs(gcc/g++, 약 250MB)를 설치할까요?') {
     Install-WithWinget 'BrechtSanders.WinLibs.POSIX.UCRT' 'WinLibs (gcc/g++)' | Out-Null
     $gpp = Find-Gpp
   }
 }
-if ($gpp) { Write-Ok "g++: $gpp" } else { Write-Warn 'gcc/g++ 없이 계속해요. C/C++은 지금처럼 Wandbox(온라인)에서 실행돼요.' }
+if ($gpp) { Write-Ok "g++: $gpp" }
 
 # 3) 도우미 복사·등록
 Write-Step '도우미 설치'
 New-Item -ItemType Directory -Force -Path $Dest | Out-Null
-Copy-Item (Join-Path $Here 'cboj_host.py') $Dest -Force
+foreach ($file in 'workspace.py', 'process_tree.py', 'toolchains.py', 'cboj_host.py') {
+  Copy-Item -LiteralPath (Join-Path $Here $file) -Destination $Dest -Force
+}
 $bat = Join-Path $Dest 'cboj_host.bat'
-$batText = "@echo off`r`n`"$python`" -u `"%~dp0cboj_host.py`" %*`r`n"
-[IO.File]::WriteAllText($bat, $batText, [Text.Encoding]::Default)
+$batText = "@echo off`r`nchcp 65001 >nul`r`n`"$($python.Replace('%','%%'))`" -E -s -S -B -u `"%~dp0cboj_host.py`" %*`r`n"
+[IO.File]::WriteAllText($bat, $batText, (New-Object Text.UTF8Encoding $false))
 
 $manifestPath = Join-Path $Dest "$HostName.json"
 $manifest = [ordered]@{
@@ -129,11 +139,12 @@ $browsers = [ordered]@{
   'Naver Whale' = 'HKCU:\Software\Naver\Naver Whale\NativeMessagingHosts'
 }
 foreach ($b in $browsers.GetEnumerator()) {
+  if ($ChromeOnly -and $b.Key -ne 'Chrome') { continue }
   $key = Join-Path $b.Value $HostName
   New-Item -Path $key -Force -Value $manifestPath | Out-Null
+  Write-Ok "$($b.Key) 등록 완료"
 }
 Write-Ok "설치 위치: $Dest"
-Write-Ok '크롬·엣지·웨일에 등록했어요.'
 
 Write-Host "`n완료! 백준 문제 탭을 새로고침하면 터미널이 '내 PC'에서 실행돼요." -ForegroundColor Green
-if (-not $Yes) { Read-Host "`n엔터를 누르면 창이 닫혀요" | Out-Null }
+if (-not $Yes -and -not $RegisterOnly) { Read-Host "`n엔터를 누르면 창이 닫혀요" | Out-Null }

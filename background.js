@@ -165,13 +165,48 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
 
 // ───────── 내 PC 실행 도우미 연결 ─────────
 // 분할 화면(콘텐츠 스크립트)과 PC 도우미(host/cboj_host.py) 사이에서 메시지를 그대로 전달한다.
-// 도우미가 설치되지 않았으면 'nohost'를 보내고, 분할 화면은 Wandbox로 실행한다.
+// 도우미가 없으면 'nohost'를 보내고, 분할 화면에서 Wandbox 전송 여부를 묻는다.
 const HOST_NAME = 'com.convenient_boj.runner';
+
+function problemSender(sender) {
+  return sender?.id === chrome.runtime.id && sender.frameId === 0 && Boolean(sender.tab)
+    && /^https:\/\/(?:www\.)?acmicpc\.net\/problem\/\d+\/?(?:[?#].*)?$/.test(sender.url || '');
+}
+
+const runnerLimit = 512 * 1024;
+function bytes(value) {
+  return typeof value === 'string' && value.length <= runnerLimit
+    ? new TextEncoder().encode(value).length : Infinity;
+}
+function validProgram(m) {
+  const kind = m.lang?.kind;
+  if (bytes(m.code) > runnerLimit || !['c', 'cpp', 'python'].includes(kind)) return false;
+  if (m.lang.std === undefined) return true;
+  if (kind === 'python' || typeof m.lang.std !== 'string') return false;
+  const standards = kind === 'c' ? /^(gnu|c)(90|99|11|17|2x|23)$/ : /^(gnu|c)\+\+(98|03|11|14|17|20|23|2c)$/;
+  return standards.test(m.lang.std);
+}
+function validNative(m) {
+  if (!m || (m.protocol !== undefined && m.protocol !== 2)) return false;
+  if (m.type === 'info') return m.id === undefined || Number.isSafeInteger(m.id);
+  if (!Number.isSafeInteger(m.id) || m.id < 1) return false;
+  if (m.type === 'kill' || m.type === 'eof') return true;
+  if (m.type === 'stdin') return bytes(m.data) <= runnerLimit;
+  if (!['run', 'batch'].includes(m.type) || !validProgram(m)) return false;
+  if (m.compiler !== undefined && !['msvc', 'gcc', 'auto'].includes(m.compiler)) return false;
+  if (m.timeLimit !== undefined && !(Number.isFinite(m.timeLimit) && m.timeLimit >= 0.05 && m.timeLimit <= 300)) return false;
+  if (m.type === 'run') return bytes(m.stdin ?? '') <= runnerLimit;
+  return Array.isArray(m.inputs) && m.inputs.length > 0 && m.inputs.length <= 64
+    && m.inputs.reduce((sum, input) => sum + bytes(input), 0) <= runnerLimit;
+}
 
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== 'cboj-runner') return;
+  if (!problemSender(port.sender)) { port.disconnect(); return; }
   let native = null;
   let closed = false;
+  let protocol = null;
+  let shutdownTimer;
 
   const open = () => {
     if (native) return native;
@@ -181,18 +216,29 @@ chrome.runtime.onConnect.addListener((port) => {
       port.postMessage({ type: 'nohost', error: String(e && e.message || e) });
       return null;
     }
-    native.onMessage.addListener((m) => { try { port.postMessage(m); } catch { /* 탭이 닫힘 */ } });
+    native.onMessage.addListener((m) => {
+      if (m.type === 'info') protocol = m.protocol || 1;
+      if (!closed) { try { port.postMessage(m); } catch { /* 탭이 닫힘 */ } }
+    });
     native.onDisconnect.addListener(() => {
       const err = chrome.runtime.lastError && chrome.runtime.lastError.message;
+      clearTimeout(shutdownTimer);
       native = null;
+      protocol = null;
       if (!closed) { try { port.postMessage({ type: 'nohost', error: err || '도우미 연결이 끊겼어요.' }); } catch { /* 탭이 닫힘 */ } }
     });
     return native;
   };
 
   port.onMessage.addListener((m) => {
+    if (!validNative(m)) {
+      port.postMessage({ type: 'lost', id: m?.id, message: '실행 요청 형식 또는 입력 한도를 확인해 주세요.' });
+      return;
+    }
     const n = open();
-    if (n) n.postMessage(m);
+    if (n) {
+      try { n.postMessage(m); } catch { port.postMessage({ type: 'nohost', error: '도우미 연결이 끊겼어요.' }); }
+    }
   });
   port.onDisconnect.addListener(() => {
     // 탭이 닫히거나 뒤로 가기 캐시(bfcache)로 들어가면 크롬이 연결을 닫는다.
@@ -200,14 +246,23 @@ chrome.runtime.onConnect.addListener((port) => {
     void chrome.runtime.lastError;
     closed = true;
     if (native) {
-      try { native.disconnect(); } catch { /* 이미 끊김 */ }
-      native = null;
+      const n = native;
+      try {
+        if (protocol === 1) n.disconnect();
+        else {
+          // Chrome may terminate a native process immediately on disconnect. Let
+          // the host stop its tree and delete its work directory before closing.
+          n.postMessage({ type: 'shutdown', protocol: 2 });
+          shutdownTimer = setTimeout(() => { try { n.disconnect(); } catch {} }, 45000);
+        }
+      } catch { /* already disconnected */ }
     }
   });
 });
 
 const HANDLERS = {
-  'cboj:run': (msg) => run(msg),
+  'cboj:run': (msg, sender) => problemSender(sender) && msg.remoteConfirmed === true && validProgram(msg) && bytes(msg.stdin) <= runnerLimit
+    ? run(msg) : { ok: false, error: 'Wandbox 전송 동의와 실행 요청을 확인해 주세요.' },
   'cboj:open-submit': openSubmit,
   'cboj:is-submit-window': async (_msg, sender) => ({ ok: true, isSubmitWindow: await isSubmitWindow(sender) }),
   'cboj:submitted': (_msg, sender) => onSubmitted(sender),
@@ -215,7 +270,7 @@ const HANDLERS = {
 };
 
 chrome.runtime.onMessage.addListener((msg, sender, respond) => {
-  const fn = msg && HANDLERS[msg.type];
+  const fn = msg && Object.hasOwn(HANDLERS, msg.type) && HANDLERS[msg.type];
   if (!fn) return undefined;
   Promise.resolve(fn(msg, sender))
     .then(respond)

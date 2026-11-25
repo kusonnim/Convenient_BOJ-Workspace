@@ -5,6 +5,13 @@
   const DEFAULTS = globalThis.CBOJ_DEFAULTS;
   const TEMPLATES = globalThis.CBOJ_TEMPLATES;
   let s = { ...DEFAULTS };
+  let hostInfo = null;
+  const runnerChoice = document.getElementById('runnerChoice');
+  ext.storage.local.get({ runnerChoice: 'auto' }, (v) => { runnerChoice.value = v.runnerChoice; refreshDefault(); });
+  runnerChoice.addEventListener('change', () => {
+    ext.storage.local.set({ runnerChoice: runnerChoice.value });
+    refreshDefault();
+  });
 
   function save(patch) {
     Object.assign(s, patch);
@@ -19,7 +26,7 @@
       });
     });
     document.querySelectorAll('.toggle input').forEach((inp) => { inp.checked = !!s[inp.dataset.key]; });
-    document.querySelectorAll('select.pick').forEach((sel) => { sel.value = s[sel.dataset.key]; });
+    document.querySelectorAll('select.pick[data-key]').forEach((sel) => { sel.value = s[sel.dataset.key]; });
   }
 
   document.querySelectorAll('.seg[data-key]').forEach((seg) => {
@@ -31,7 +38,7 @@
   document.querySelectorAll('.toggle input').forEach((inp) => {
     inp.addEventListener('change', () => save({ [inp.dataset.key]: inp.checked }));
   });
-  document.querySelectorAll('select.pick').forEach((sel) => {
+  document.querySelectorAll('select.pick[data-key]').forEach((sel) => {
     sel.addEventListener('change', () => save({ [sel.dataset.key]: sel.value }));
   });
 
@@ -40,12 +47,20 @@
   const tplText = document.getElementById('tplText');
   const tplState = document.getElementById('tplState');
   let lang = 'cpp';
+  function defaultTemplate(family) {
+    if (family !== 'cpp') return TEMPLATES[family];
+    const compiler = globalThis.cbojLocalCompiler(runnerChoice.value, { kind: 'cpp', std: 'gnu++17' }, hostInfo);
+    return globalThis.cbojCppTemplate(compiler === 'msvc');
+  }
+  function refreshDefault() {
+    if (!tplState.classList.contains('dirty') && !tplState.classList.contains('error')) showTemplate();
+  }
 
   const currentTemplate = (l) => {
     const custom = s.templates && s.templates[l];
-    return typeof custom === 'string' ? custom : TEMPLATES[l];
+    return typeof custom === 'string' ? custom : defaultTemplate(l);
   };
-  const isCustom = (l) => !!(s.templates && typeof s.templates[l] === 'string' && s.templates[l] !== TEMPLATES[l]);
+  const isCustom = (l) => typeof s.templates?.[l] === 'string';
 
   function showState(kind, message) {
     tplState.className = 'tpl-state ' + (kind || '');
@@ -66,7 +81,7 @@
   // 저장에 성공하면 true. 실패하면 이유를 보여 주고 이전 상태를 유지한다.
   async function saveTemplate(text) {
     const templates = { ...(s.templates || {}) };
-    if (text === TEMPLATES[lang]) delete templates[lang]; // 기본값과 같으면 따로 저장하지 않는다
+    if (text === defaultTemplate(lang)) delete templates[lang];
     else templates[lang] = text;
 
     const bytes = syncItemBytes('templates', templates);
@@ -108,32 +123,34 @@
     if (await saveTemplate(tplText.value)) showState('saved');
   });
   document.getElementById('tplReset').addEventListener('click', async () => {
-    tplText.value = TEMPLATES[lang];
-    if (await saveTemplate(TEMPLATES[lang])) showState('saved');
+    tplText.value = defaultTemplate(lang);
+    if (await saveTemplate(tplText.value)) showState('saved');
   });
 
   // ───────── 실행 위치 (내 PC 실행 도우미) ─────────
   const runnerState = document.getElementById('runnerState');
   const GUIDE = 'https://github.com/gaudium1257/Convenient_BOJ#2단계-내-pc에서-실행-진짜-터미널-선택';
   function showRunner(info) {
+    hostInfo = info;
+    refreshDefault();
     runnerState.textContent = '';
     if (info) {
-      // gcc(C)와 g++(C++)는 보통 함께 설치되므로 'C/C++'로 묶어 보여 준다
-      const cpp = info.gcc && info.gpp ? 'C/C++ ✔'
-        : info.gcc ? 'C ✔ · C++ 없음'
-          : info.gpp ? 'C++ ✔ · C 없음'
-            : 'C/C++ 없음';
-      const parts = [`Python ${info.python}`, cpp];
+      const parts = [`Python ${info.python}`];
+      if (info.msvc) parts.push('MSVC x64 ' + info.msvc);
+      if (info.gcc) parts.push('GCC');
+      if (info.gpp) parts.push('G++');
+      if (!info.msvc && !info.gcc && !info.gpp) parts.push('C/C++ 컴파일러 없음');
+      if (info.protocol !== 2) parts.push('이전 도우미 · MSVC는 host/install.bat 재실행');
       runnerState.className = 'runner-state on';
       runnerState.append('● 내 PC', Object.assign(document.createElement('small'), { textContent: parts.join(' · ') }));
     } else {
       runnerState.className = 'runner-state off';
       const a = Object.assign(document.createElement('a'), { href: GUIDE, target: '_blank', textContent: '설치 방법' });
-      runnerState.append('● Wandbox (온라인)', a);
+      runnerState.append('도우미 없음', a);
     }
   }
   try {
-    ext.runtime.sendNativeMessage('com.convenient_boj.runner', { type: 'info' }, (res) => {
+    ext.runtime.sendNativeMessage('com.convenient_boj.runner', { type: 'info', protocol: 2 }, (res) => {
       showRunner(!ext.runtime.lastError && res && res.type === 'info' ? res : null);
     });
   } catch { showRunner(null); }

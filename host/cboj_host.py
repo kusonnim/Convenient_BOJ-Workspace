@@ -1,182 +1,25 @@
 #!/usr/bin/env python3
-"""Convenient BOJ - 내 PC 실행 도우미 (크롬 Native Messaging 호스트)
-
-확장 프로그램이 보낸 코드를 이 PC에서 컴파일·실행하고, 출력을 실시간으로 돌려준다.
-크롬이 이 프로그램을 직접 켜고 끄며, 화면에 창은 뜨지 않는다.
-
-메시지 (확장 → 도우미)
-  {"type": "info"}
-  {"type": "run",   "id": n, "lang": {...}, "code": "...", "stdin": "...", "interactive": true}
-  {"type": "batch", "id": n, "lang": {...}, "code": "...", "inputs": ["...", ...], "timeLimit": 10}
-  {"type": "stdin", "id": n, "data": "..."}   실행 중인 프로그램에 입력 보내기
-  {"type": "eof",   "id": n}                  입력 끝 (Ctrl+D)
-  {"type": "kill",  "id": n}                  강제 종료
-
-메시지 (도우미 → 확장)
-  info / compile / compiled / start / out / exit / batch-result / error
-"""
-import codecs
+"""Convenient BOJ native messaging host. Each browser port owns its compiler cache and job."""
 import json
 import os
-import shutil
+import re
 import struct
-import subprocess
 import sys
-import tempfile
 import threading
-import time
 
-VERSION = '1.0.0'
-IS_WIN = os.name == 'nt'
-NO_WINDOW = 0x08000000 if IS_WIN else 0  # CREATE_NO_WINDOW: 콘솔 창이 뜨지 않게
-OUT_LIMIT = 2_000_000                    # 실시간 출력 최대 바이트 (넘으면 종료)
-BATCH_OUT_LIMIT = 200_000                # 예제 채점 결과 하나당 최대 문자 수
+from process_tree import Control, WINDOWS, execute
+from toolchains import BuildError, Toolchains
+from workspace import workspace
 
-if IS_WIN:
+if WINDOWS:
     import msvcrt
     msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
     msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
 
+PROTOCOL = 2
+FRAME_LIMIT = 8 * 1024 * 1024
+SOURCE_LIMIT = INPUT_LIMIT = 512 * 1024
 _send_lock = threading.Lock()
-
-
-def send(msg):
-    data = json.dumps(msg, ensure_ascii=False).encode('utf-8')
-    with _send_lock:
-        sys.stdout.buffer.write(struct.pack('=I', len(data)) + data)
-        sys.stdout.buffer.flush()
-
-
-def read_message():
-    raw = sys.stdin.buffer.read(4)
-    if len(raw) < 4:
-        return None
-    size = struct.unpack('=I', raw)[0]
-    return json.loads(sys.stdin.buffer.read(size).decode('utf-8'))
-
-
-# ───────── 컴파일러 찾기 ─────────
-def _search_path():
-    """크롬이 켜진 뒤에 gcc를 설치해도 찾을 수 있게 레지스트리의 PATH와 흔한 설치 위치까지 본다."""
-    dirs = os.environ.get('PATH', '').split(os.pathsep)
-    if IS_WIN:
-        try:
-            import winreg
-            for root, sub in ((winreg.HKEY_CURRENT_USER, r'Environment'),
-                              (winreg.HKEY_LOCAL_MACHINE, r'SYSTEM\CurrentControlSet\Control\Session Manager\Environment')):
-                try:
-                    with winreg.OpenKey(root, sub) as k:
-                        value, _ = winreg.QueryValueEx(k, 'Path')
-                        dirs += os.path.expandvars(value).split(os.pathsep)
-                except OSError:
-                    pass
-        except ImportError:
-            pass
-        local = os.environ.get('LOCALAPPDATA', '')
-        dirs += [
-            os.path.join(local, 'Microsoft', 'WinGet', 'Links'),
-            r'C:\msys64\ucrt64\bin', r'C:\msys64\mingw64\bin', r'C:\MinGW\bin', r'C:\mingw64\bin',
-        ]
-        pkgs = os.path.join(local, 'Microsoft', 'WinGet', 'Packages')
-        if os.path.isdir(pkgs):
-            for name in os.listdir(pkgs):
-                if name.lower().startswith('brechtsanders.winlibs'):
-                    dirs.append(os.path.join(pkgs, name, 'mingw64', 'bin'))
-    seen, out = set(), []
-    for d in dirs:
-        d = d.strip().strip('"')
-        if d and d.lower() not in seen and os.path.isdir(d):
-            seen.add(d.lower())
-            out.append(d)
-    return os.pathsep.join(out)
-
-
-SEARCH_PATH = _search_path()
-
-
-def find_tool(name):
-    return shutil.which(name, path=SEARCH_PATH)
-
-
-def tool_version(path):
-    if not path:
-        return None
-    try:
-        r = subprocess.run([path, '--version'], capture_output=True, timeout=10, creationflags=NO_WINDOW)
-        return (r.stdout or r.stderr).decode('utf-8', 'replace').splitlines()[0].strip()
-    except Exception:  # noqa: BLE001
-        return None
-
-
-TOOLS = {'gcc': find_tool('gcc'), 'g++': find_tool('g++')}
-
-
-def child_env():
-    env = dict(os.environ)
-    extra = [os.path.dirname(p) for p in TOOLS.values() if p]
-    env['PATH'] = os.pathsep.join(extra + [env.get('PATH', '')])
-    env['PYTHONIOENCODING'] = 'utf-8'
-    env['PYTHONUTF8'] = '1'
-    return env
-
-
-def info():
-    return {
-        'type': 'info',
-        'version': VERSION,
-        'python': sys.version.split()[0],
-        'gcc': tool_version(TOOLS['gcc']),
-        'gpp': tool_version(TOOLS['g++']),
-    }
-
-
-# ───────── 컴파일 ─────────
-# 실시간 실행 때는 C 표준 출력 버퍼를 꺼서 printf가 바로 보이게 한다 (진짜 터미널처럼).
-UNBUF_STUB = '#include <stdio.h>\n__attribute__((constructor)) static void cboj_unbuf(void) { setvbuf(stdout, NULL, _IONBF, 0); }\n'
-
-
-def prepare(lang, code, workdir, interactive):
-    """소스를 저장하고 필요하면 컴파일한다. (실행 명령, 표시용 명령, 오류) 를 돌려준다."""
-    kind = lang.get('kind')
-    if kind == 'python':
-        src = os.path.join(workdir, 'main.py')
-        with open(src, 'w', encoding='utf-8', newline='\n') as f:
-            f.write(code)
-        return [sys.executable, '-u', src], f'python main.py  (Python {sys.version.split()[0]})', None, None
-
-    is_c = kind == 'c'
-    compiler = TOOLS['gcc' if is_c else 'g++']
-    if not compiler:
-        return None, None, {
-            'code': 'nocompiler',
-            'message': ('gcc' if is_c else 'g++') + ' 컴파일러를 찾지 못했어요.',
-        }, None
-    src = os.path.join(workdir, 'main.c' if is_c else 'main.cpp')
-    exe = os.path.join(workdir, 'main.exe' if IS_WIN else 'main')
-    with open(src, 'w', encoding='utf-8', newline='\n') as f:
-        f.write(code)
-    std = lang.get('std') or ('gnu11' if is_c else 'gnu++17')
-    args = [compiler, '-O2', f'-std={std}', '-DONLINE_JUDGE', '-DBOJ', src]
-    if interactive:
-        stub = os.path.join(workdir, 'cboj_unbuf.c')
-        with open(stub, 'w', encoding='utf-8') as f:
-            f.write(UNBUF_STUB)
-        args.append(stub)
-    args += ['-o', exe]
-    if is_c:
-        args.append('-lm')
-    if IS_WIN:
-        args.append('-static')  # MinGW DLL 없이 실행되게
-    shown = f"{'gcc' if is_c else 'g++'} -O2 -std={std} {os.path.basename(src)}"
-    try:
-        r = subprocess.run(args, capture_output=True, timeout=60, cwd=workdir,
-                           creationflags=NO_WINDOW, env=child_env())
-    except subprocess.TimeoutExpired:
-        return None, shown, {'code': 'compile', 'message': '컴파일이 60초를 넘겨 중단했어요.'}, None
-    output = (r.stderr + r.stdout).decode('utf-8', 'replace').replace(workdir + os.sep, '')
-    if r.returncode != 0:
-        return None, shown, {'code': 'compile', 'message': output}, None
-    return [exe], shown, None, output
 
 
 def describe_exit(code):
@@ -193,162 +36,204 @@ def describe_exit(code):
     return known.get(code & 0xFFFFFFFF, '')
 
 
-# ───────── 실행 ─────────
-class Job:
-    def __init__(self, msg):
-        self.id = msg.get('id')
+def send(message):
+    data = json.dumps({'protocol': PROTOCOL, **message}, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    with _send_lock:
+        try:
+            sys.stdout.buffer.write(struct.pack('=I', len(data)) + data)
+            sys.stdout.buffer.flush()
+        except (BrokenPipeError, OSError):
+            pass  # EOF on the input pipe also wakes the owner to join its worker.
+
+
+def read_message():
+    header = sys.stdin.buffer.read(4)
+    if len(header) != 4:
+        return None
+    size, = struct.unpack('=I', header)
+    if not 0 < size <= FRAME_LIMIT:
+        return None
+    data = sys.stdin.buffer.read(size)
+    if len(data) != size:
+        return None
+    return json.loads(data.decode('utf-8'))
+
+
+def byte_length(value, maximum):
+    if not isinstance(value, str) or len(value) > maximum:
+        raise ValueError('코드 또는 입력의 크기나 형식이 올바르지 않아요.')
+    size = len(value.encode('utf-8'))
+    if size > maximum:
+        raise ValueError('코드 또는 입력의 크기 한도를 넘었어요.')
+    return size
+
+
+def validate(msg):
+    if not isinstance(msg, dict) or msg.get('protocol', PROTOCOL) != PROTOCOL:
+        raise ValueError('지원하지 않는 실행 도우미 메시지예요.')
+    kind = msg.get('type')
+    if kind not in ('info', 'shutdown', 'batch', 'run', 'stdin', 'eof', 'kill'):
+        raise ValueError('지원하지 않는 명령이에요.')
+    if kind in ('info', 'shutdown') and 'id' not in msg:
+        return
+    if type(msg.get('id')) is not int or not 0 < msg['id'] < 2**53:
+        raise ValueError('작업 번호가 올바르지 않아요.')
+    if kind == 'stdin':
+        byte_length(msg.get('data'), INPUT_LIMIT)
+    if kind not in ('batch', 'run'):
+        return
+    lang = msg.get('lang')
+    if not isinstance(lang, dict) or lang.get('kind') not in ('c', 'cpp', 'python'):
+        raise ValueError('지원하지 않는 언어예요.')
+    std = lang.get('std')
+    patterns = {'c': r'(?:gnu|c)(?:90|99|11|17|2x|23)', 'cpp': r'(?:gnu|c)\+\+(?:98|03|11|14|17|20|23|2c)'}
+    if std is not None and (not isinstance(std, str) or not re.fullmatch(patterns.get(lang['kind'], r'(?!)'), std)):
+        raise ValueError('지원하지 않는 언어 표준이에요.')
+    if msg.get('compiler', 'auto') not in ('auto', 'gcc', 'msvc'):
+        raise ValueError('지원하지 않는 컴파일러예요.')
+    byte_length(msg.get('code'), SOURCE_LIMIT)
+    limit = msg.get('timeLimit', 10)
+    if type(limit) not in (int, float) or not 0.05 <= limit <= 300:
+        raise ValueError('실행 시간 제한이 범위를 벗어났어요.')
+    if kind == 'batch':
+        inputs = msg.get('inputs')
+        if not isinstance(inputs, list) or not 1 <= len(inputs) <= 64:
+            raise ValueError('한 번에 예제 1~64개를 실행할 수 있어요.')
+        if sum(byte_length(s, INPUT_LIMIT) for s in inputs) > INPUT_LIMIT:
+            raise ValueError('예제 입력 합계가 512 KiB를 넘었어요.')
+    else:
+        byte_length(msg.get('stdin', ''), INPUT_LIMIT)
+
+
+def failure(msg, code, message, cmd=''):
+    rid = msg.get('id') if type(msg.get('id')) is int else None
+    if msg.get('type') == 'batch':
+        return dict(type='batch-result', id=rid, cmd=cmd, error=dict(code=code, message=message), results=[])
+    if msg.get('type') == 'run':
+        if code != 'cancelled':
+            send(dict(type='compiled', id=rid, ok=False, cmd=cmd, code=code, message=message))
+        return dict(type='exit', id=rid, code=None, killed=code == 'cancelled', compileFailed=code != 'cancelled', ms=0)
+    return dict(type='error', id=rid, code=code, message=message)
+
+
+class Job(threading.Thread):
+    def __init__(self, tools, msg):
+        super().__init__()
+        self.tools = tools
         self.msg = msg
-        self.proc = None
-        self.killed = False
-        self.over_limit = False
-        self.lock = threading.Lock()
-        threading.Thread(target=self.run, daemon=True).start()
+        self.id = msg['id']
+        self.control = Control()
+        self.finished = threading.Event()
+        if msg['type'] == 'run' and msg.get('stdin'):
+            self.control.feed(msg['stdin'].encode('utf-8'))
 
     def run(self):
-        msg = self.msg
-        workdir = tempfile.mkdtemp(prefix='cboj_')
         try:
-            send({'id': self.id, 'type': 'compile'})
-            cmd, shown, err, warnings = prepare(msg.get('lang') or {}, msg.get('code') or '', workdir, True)
-            if err:
-                send({'id': self.id, 'type': 'compiled', 'ok': False, 'cmd': shown, **err})
-                send({'id': self.id, 'type': 'exit', 'code': None, 'ms': 0, 'compileFailed': True})
-                return
-            send({'id': self.id, 'type': 'compiled', 'ok': True, 'cmd': shown, 'warnings': warnings or ''})
-            if self.killed:
-                send({'id': self.id, 'type': 'exit', 'code': None, 'ms': 0, 'killed': True})
-                return
-            with self.lock:
-                self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                             stderr=subprocess.PIPE, cwd=workdir, bufsize=0,
-                                             creationflags=NO_WINDOW, env=child_env())
-            started = time.perf_counter()
-            send({'id': self.id, 'type': 'start'})
-            if msg.get('stdin'):
-                self.write(msg['stdin'])
-            readers = [threading.Thread(target=self.pump, args=(self.proc.stdout, 'stdout'), daemon=True),
-                       threading.Thread(target=self.pump, args=(self.proc.stderr, 'stderr'), daemon=True)]
-            for t in readers:
-                t.start()
-            code = self.proc.wait()
-            ms = int((time.perf_counter() - started) * 1000)
-            for t in readers:
-                t.join(timeout=2)
-            send({'id': self.id, 'type': 'exit', 'code': code, 'ms': ms, 'killed': self.killed,
-                  'overLimit': self.over_limit, 'note': describe_exit(code)})
-        except Exception as e:  # noqa: BLE001
-            send({'id': self.id, 'type': 'error', 'message': str(e)})
-            send({'id': self.id, 'type': 'exit', 'code': None, 'ms': 0})
-        finally:
-            shutil.rmtree(workdir, ignore_errors=True)
+            # Send the terminal event only after all processes, pipes and files are gone.
+            with workspace() as work:
+                if self.msg['type'] == 'run':
+                    send(dict(type='compile', id=self.id))
+                args, env, build = self.tools.prepare(self.msg, work, self.control)
+                if self.control.cancelled.is_set():
+                    raise BuildError('cancelled', '작업을 중지했어요.')
+                if self.msg['type'] == 'batch':
+                    terminal = self.batch(args, env, work, build)
+                else:
+                    terminal = self.live(args, env, work, build)
+        except BuildError as error:
+            terminal = failure(self.msg, error.code, str(error), error.cmd)
+        except (OSError, ValueError, RuntimeError) as error:
+            terminal = failure(self.msg, 'host', '도우미 작업에 실패했어요 (' + type(error).__name__ + ').')
+        self.finished.set()
+        send(terminal)
 
-    def pump(self, stream, name):
-        decoder = codecs.getincrementaldecoder('utf-8')('replace')
-        total = 0
-        while True:
-            try:
-                chunk = stream.read(4096)
-            except OSError:
-                break
-            if not chunk:
-                break
-            total += len(chunk)
-            if total > OUT_LIMIT:
-                self.over_limit = True
-                self.kill()
-                break
-            text = decoder.decode(chunk)
-            if text:
-                send({'id': self.id, 'type': 'out', 'stream': name, 'data': text})
-        rest = decoder.decode(b'', final=True)
-        if rest:
-            send({'id': self.id, 'type': 'out', 'stream': name, 'data': rest})
-
-    def write(self, data):
-        try:
-            if self.proc and self.proc.stdin:
-                self.proc.stdin.write(data.encode('utf-8'))
-                self.proc.stdin.flush()
-        except (BrokenPipeError, OSError, ValueError):
-            pass
-
-    def eof(self):
-        try:
-            if self.proc and self.proc.stdin:
-                self.proc.stdin.close()
-        except OSError:
-            pass
-
-    def kill(self):
-        self.killed = True
-        with self.lock:
-            if self.proc and self.proc.poll() is None:
-                try:
-                    self.proc.kill()
-                except OSError:
-                    pass
-
-
-def run_batch(msg):
-    """예제 채점용: 한 번 컴파일하고 입력마다 실행해서 결과를 한 번에 돌려준다."""
-    rid = msg.get('id')
-    workdir = tempfile.mkdtemp(prefix='cboj_')
-    try:
-        cmd, shown, err, warnings = prepare(msg.get('lang') or {}, msg.get('code') or '', workdir, False)
-        if err:
-            send({'id': rid, 'type': 'batch-result', 'cmd': shown, 'error': err, 'results': []})
-            return
-        limit = float(msg.get('timeLimit') or 10)
+    def batch(self, args, env, work, build):
         results = []
-        for data in msg.get('inputs') or []:
-            started = time.perf_counter()
-            try:
-                r = subprocess.run(cmd, input=(data or '').encode('utf-8'), capture_output=True, timeout=limit,
-                                   cwd=workdir, creationflags=NO_WINDOW, env=child_env())
-                ms = int((time.perf_counter() - started) * 1000)
-                results.append({
-                    'stdout': r.stdout.decode('utf-8', 'replace')[:BATCH_OUT_LIMIT],
-                    'stderr': r.stderr.decode('utf-8', 'replace')[:BATCH_OUT_LIMIT],
-                    'code': r.returncode, 'ms': ms, 'note': describe_exit(r.returncode),
-                })
-            except subprocess.TimeoutExpired as e:
-                results.append({
-                    'stdout': (e.stdout or b'').decode('utf-8', 'replace')[:BATCH_OUT_LIMIT],
-                    'stderr': (e.stderr or b'').decode('utf-8', 'replace')[:BATCH_OUT_LIMIT],
-                    'code': None, 'ms': int(limit * 1000), 'timeout': True,
-                })
-        send({'id': rid, 'type': 'batch-result', 'cmd': shown, 'warnings': warnings or '', 'results': results})
-    except Exception as e:  # noqa: BLE001
-        send({'id': rid, 'type': 'batch-result', 'error': {'code': 'host', 'message': str(e)}, 'results': []})
-    finally:
-        shutil.rmtree(workdir, ignore_errors=True)
+        # JSON escaping can cost six bytes per output byte. Keep the complete
+        # native reply (including compiler warnings) below Chrome's 1 MiB limit.
+        remaining = 96 * 1024
+        for index, data in enumerate(self.msg['inputs']):
+            case = work / str(index)
+            case.mkdir()
+            result = execute(args, case, env, self.control, timeout=self.msg.get('timeLimit', 10),
+                             limit=min(64 * 1024, remaining), stdin=data.encode('utf-8'))
+            if result['killed']:
+                raise BuildError('cancelled', '실행을 중지했어요.')
+            for stream in ('stdout', 'stderr'):
+                raw = result[stream]
+                remaining -= len(raw)
+                result[stream] = raw.decode('utf-8', 'replace')
+            if result['timeout']:
+                result['code'] = None
+            result['note'] = describe_exit(result['code'])
+            results.append(result)
+        return dict(type='batch-result', id=self.id, results=results, **build)
+
+    def live(self, args, env, work, build):
+        send(dict(type='compiled', id=self.id, ok=True, **build))
+        result = execute(args, work, env, self.control, timeout=self.msg.get('timeLimit', 120),
+                         limit=2_000_000, stdin=None,
+                         on_start=lambda: send(dict(type='start', id=self.id)),
+                         on_output=lambda name, data: send(dict(type='out', id=self.id, stream=name, data=data)))
+        del result['stdout'], result['stderr']
+        return dict(type='exit', id=self.id, note=describe_exit(result['code']), **result)
 
 
 def main():
+    tools = None
     job = None
-    while True:
-        msg = read_message()
-        if msg is None:  # 크롬이 연결을 끊음
-            if job:
-                job.kill()
-            return
-        t = msg.get('type')
-        if t == 'info':
-            send(info())
-        elif t == 'run':
-            if job:
-                job.kill()
-            job = Job(msg)
-        elif t == 'batch':
-            threading.Thread(target=run_batch, args=(msg,), daemon=True).start()
-        elif job and msg.get('id') == job.id:
-            if t == 'stdin':
-                job.write(msg.get('data') or '')
-            elif t == 'eof':
-                job.eof()
-            elif t == 'kill':
-                job.kill()
+    msg = None
+    last_id = 0
+    try:
+        while True:
+            msg = read_message()
+            if msg is None:
+                break
+            try:
+                validate(msg)
+                kind = msg['type']
+                if kind == 'shutdown':
+                    break
+                if kind in ('info', 'run', 'batch') and tools is None:
+                    tools = Toolchains()
+                if kind == 'info':
+                    reply = tools.info()
+                    if 'id' in msg:
+                        reply['id'] = msg['id']
+                    send(reply)
+                elif kind in ('run', 'batch'):
+                    if msg.get('protocol') == PROTOCOL and msg['id'] <= last_id:
+                        continue  # A redelivery must never launch the job twice.
+                    if job and job.finished.is_set():
+                        job.join()
+                    elif job and job.is_alive():
+                        if msg.get('protocol') == PROTOCOL:
+                            send(failure(msg, 'busy', '이 탭에서 다른 작업을 실행 중이에요.'))
+                            continue
+                        job.control.cancel()
+                        job.join()
+                    last_id = msg['id']
+                    job = Job(tools, msg)
+                    job.start()
+                elif job and msg['id'] == job.id and job.is_alive():
+                    if kind == 'kill':
+                        job.control.cancel()
+                    elif kind == 'stdin':
+                        job.control.feed(msg['data'].encode('utf-8'))
+                    elif kind == 'eof':
+                        job.control.feed(None)
+            except (ValueError, TypeError) as error:
+                send(failure(msg if isinstance(msg, dict) else {}, 'invalid', str(error)))
+    except (EOFError, OSError, ValueError):
+        pass
+    finally:
+        if job:
+            job.control.cancel()
+            job.join()
+    if isinstance(msg, dict) and msg.get('type') == 'shutdown':
+        send(dict(type='closed'))
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) == 1 or sys.argv[1] == 'chrome-extension://mabfdombglhmfnjklbnoglebinejifdi/':
+        main()

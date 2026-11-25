@@ -1,0 +1,13 @@
+{
+  "url": "https://acmicpc.net/problem/1000",
+  "status": 200,
+  "chrome": "158.0.8127.37",
+  "extensionId": "mabfdombglhmfnjklbnoglebinejifdi",
+  "host": "2.0.0",
+  "stylesheetsLoaded": 14,
+  "statementPreserved": true,
+  "runs": [
+    "C++17 · 예제 1개 실행 중…\n$ cl /nologo /EHsc /O2 /utf-8 /Zc:__cplusplus /std:c++17 /DONLINE_JUDGE /DBOJ main.cpp · 새로 컴파일   [내 PC]\n✔ 예제 1 — 맞음  (0.12초)\n예제 1개 모두 맞았어요! 🎉",
+    "C++17 · 예제 1개 실행 중…\n$ cl /nologo /EHsc /O2 /utf-8 /Zc:__cplusplus /std:c++17 /DONLINE_JUDGE /DBOJ main.cpp · 캐시 재사용   [내 PC]\n✔ 예제 1 — 맞음  (0.15초)\n예제 1개 모두 맞았어요! 🎉"
+  ]
+}

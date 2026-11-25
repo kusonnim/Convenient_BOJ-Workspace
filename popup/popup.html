@@ -19,6 +19,15 @@
       <h2>실행 위치</h2>
       <span id="runnerState" class="runner-state">확인 중…</span>
     </div>
+    <div class="row">
+      <label for="runnerChoice">실행 환경</label>
+      <select id="runnerChoice" class="pick">
+        <option value="auto">자동 (C++는 MSVC 우선)</option>
+        <option value="msvc">내 PC · C++ MSVC</option>
+        <option value="gcc">내 PC · C++ GCC</option>
+        <option value="wandbox">Wandbox · 코드와 입력 전송</option>
+      </select>
+    </div>
     <label class="toggle">
       <span><b>문제를 열면 바로 펼치기</b><small>꺼져 있으면 제목 옆 [⇆ 코드 작성] 버튼이나 Alt+C로 열어요</small></span>
       <input type="checkbox" data-key="splitAutoOpen"><i></i>
@@ -71,7 +80,7 @@
       <dt>Ctrl + S</dt><dd>코드 저장</dd>
     </dl>
   </section>
-  <p class="note">실행은 Wandbox(wandbox.org) 서버에서 해요.</p>
+  <p class="note">C는 GCC, Python은 로컬 Python으로 실행해요. MSVC는 C++17/20을 지원해요. 로컬 실행 시간은 백준 채점 시간과 다를 수 있어요.</p>
 
   <script src="../shared/defaults.js"></script>
   <script src="popup.js"></script>

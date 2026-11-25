@@ -1,9 +1,10 @@
 // Optional anonymous read-only check. The default test suite uses local HTML.
 import { strict as assert } from 'node:assert';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { loadCode } from './chrome-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const output = fileURLToPath(new URL('test-results/', import.meta.url));
@@ -56,6 +57,35 @@ try {
   })));
   console.log('Public page', page.url(), await page.title(), 'stylesheets', styles);
   await page.screenshot({ path: path.join(output, 'live-problem.png') });
+  if (process.argv.includes('--msvc')) {
+    assert.equal(host, '2.0.0');
+    const badge = page.locator('.cboj-where');
+    await badge.filter({ hasText: 'MSVC' }).waitFor();
+    await loadCode(page, [
+      '#include <iostream>',
+      'static_assert(sizeof(void*) == 8 && _MSVC_LANG == 201703L);',
+      'int main() {',
+      '    int a, b;',
+      '    std::cin >> a >> b;',
+      '    std::cout << a + b;',
+      '}',
+    ].join('\n'));
+    const runs = [];
+    for (const note of ['새로 컴파일', '캐시 재사용']) {
+      await page.locator('.cboj-toolbar .run').click();
+      await page.locator('.cboj-term-out').getByText(note, { exact: false }).waitFor({ timeout: 45_000 });
+      await page.locator('.cboj-status').filter({ hasText: '예제 통과' }).waitFor();
+      const log = (await page.locator('.cboj-term-out').innerText()).trim();
+      runs.push(log);
+      console.log('Public MSVC run', log);
+    }
+    assert.equal(await statement.innerHTML(), original);
+    await page.screenshot({ path: path.join(output, 'live-msvc-pass.png') });
+    await writeFile(path.join(output, 'live-msvc.json'), JSON.stringify({
+      url: page.url(), status: response.status(), chrome: context.browser().version(), extensionId: id,
+      host, stylesheetsLoaded: styles.filter(s => s.loaded).length, statementPreserved: true, runs,
+    }, null, 2) + '\n');
+  }
 } finally {
   await context.close();
 }

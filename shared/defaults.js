@@ -14,6 +14,20 @@ globalThis.CBOJ_TEMPLATES = Object.freeze({
   py: '', // 파이썬은 보통 기본 코드 없이 시작한다 (빠른 입력이 필요하면 팝업에서 추가)
 });
 
+globalThis.cbojCppTemplate = (msvc) => msvc
+  ? globalThis.CBOJ_TEMPLATES.cpp.replace('<bits/stdc++.h>', '<iostream>')
+  : globalThis.CBOJ_TEMPLATES.cpp;
+
+globalThis.cbojLocalCompiler = (choice, lang, host) => {
+  if (!host || choice === 'wandbox') return null;
+  if (lang.kind === 'python') return host.python ? 'python' : null;
+  if (lang.kind === 'c') return host.gcc ? 'gcc' : null;
+  const msvc = host.protocol === 2 && host.msvc;
+  if (choice === 'msvc') return msvc ? 'msvc' : null;
+  if (choice !== 'gcc' && msvc && (/^(?:gnu|c)\+\+(17|20)$/.test(lang.std) || !host.gpp)) return 'msvc';
+  return host.gpp ? 'g++' : null;
+};
+
 // 기본 코드 문자열에서 $0 을 빼고 커서 위치를 돌려준다.
 globalThis.cbojExpandTemplate = (text) => {
   const s = String(text == null ? '' : text);

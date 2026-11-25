@@ -41,6 +41,7 @@ function installDoubles() {
 }
 
 export const test = base.extend({
+  realHost: [false, { option: true }],
   unpacked: [async ({}, use, workerInfo) => {
     const dir = path.join(workerInfo.project.outputDir, 'unpacked');
     await mkdir(dir, { recursive: true });
@@ -48,7 +49,9 @@ export const test = base.extend({
     await use(dir);
   }, { scope: 'worker' }],
 
-  lab: async ({ unpacked }, use) => {
+  lab: async ({ unpacked, realHost }, use, testInfo) => {
+    const nativeTemp = testInfo.outputPath('native-temp');
+    if (realHost) await mkdir(nativeTemp, { recursive: true });
     const context = await chromium.launchPersistentContext('', {
       channel: 'chrome',
       executablePath: process.env.CBOJ_CHROME || undefined,
@@ -56,6 +59,7 @@ export const test = base.extend({
       chromiumSandbox: true,
       viewport: { width: 1280, height: 800 },
       deviceScaleFactor: 1,
+      env: realHost ? { ...process.env, TEMP: nativeTemp, TMP: nativeTemp, TMPDIR: nativeTemp } : undefined,
       ignoreDefaultArgs: ['--disable-extensions'],
       args: ['--enable-unsafe-extension-debugging', '--no-proxy-server', '--host-resolver-rules=MAP * ~NOTFOUND'],
     });
@@ -83,8 +87,8 @@ export const test = base.extend({
       const isWorker = w => w.url() === 'chrome-extension://' + id + '/background.js';
       const worker = context.serviceWorkers().find(isWorker)
         || await context.waitForEvent('serviceworker', { predicate: isWorker });
-      await worker.evaluate(installDoubles);
-      await use({ context, worker });
+      if (!realHost) await worker.evaluate(installDoubles);
+      await use({ context, worker, nativeTemp });
       expect(badRequests).toEqual([]);
     } finally {
       await context.close();
