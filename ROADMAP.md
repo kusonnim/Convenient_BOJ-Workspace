@@ -1,17 +1,15 @@
 # Phase Roadmap
 
-Each phase is independently reviewable. A gate is satisfied only by recorded evidence; environment-blocked checks remain open and must be carried forward. Do not start the next phase without owner approval. Model suggestions are advisory: use a capable coding model available in the Codex picker; high reasoning for ordinary phases and extra-high for integration-heavy phases if available.
+Each phase ends at owner review. The reports record what passed and which checks remain open. P3.5 covers repository migration. P4 is the single remaining development phase and requires separate owner approval.
 
 | Phase | Scope | Suggested effort |
 | --- | --- | --- |
-| P0 | Baseline audit and regression harness | High |
-| P1 | MSVC native execution | High |
-| P2 | Monaco migration | High |
-| P3 | clangd / LSP | Extra high |
-| P4 | Tests and interactive terminal | High |
-| P5 | Workspace UX | High |
-| P6 | Persistence and personalization | High |
-| P7 | End-to-end hardening and packaging | Extra high |
+| [P0](docs/development/P0.md) | Baseline audit and regression harness | High |
+| [P1](docs/development/P1.md) | MSVC native execution | High |
+| [P2](docs/development/P2.md) | Monaco migration | High |
+| [P3](docs/development/P3.md) | clangd / LSP | Extra high |
+| [P3.5](docs/development/P3.5.md) | Official fork, history migration and documentation | High |
+| P4 (planned, final) | Test cases, snippets, optional Power Mode, workspace UI, submission isolation and final verification | Extra high |
 
 ## Mandatory BOJ account safety at every gate
 
@@ -34,14 +32,19 @@ Implement editor adapter, local pinned assets and workers, preserve existing lan
 ## P3 — clangd intelligence
 Add constrained native LSP transport, tool discovery, MSVC compilation configuration, per-document lifecycle and Monaco providers. Gate: real clangd + MSVC headers; STL member completion, local symbols, include suggestions, signatures, live diagnostics, UTF-16 edits, rapid typing, stale responses, multiple tabs, reconnect and absent clangd fallback. Record startup/completion latency and resource cleanup. No AI generation.
 
-## P4 — Test workspace and terminal
-Add test case management, sample/custom tabs, reorder, compare, current/all execution actions, structured diagnostics and streamed stdout/stderr. Preserve judge result panel. Gate: compile once per batch; correct outputs and raw output preservation; empty expected output versus absent expectation; CRLF, multiline, Unicode, timeouts, stop/EOF, output bounds, editing during execution, stderr exclusion and independent per-tab jobs. Do not yet replace legacy keyboard mappings unless required to avoid a conflict.
+## P3.5 — Official fork and migration
 
-## P5 — UI/UX
-Refine actual split layout using baseline captures. Implement resize, tab reorder, collapse/maximize, focus mode, reset, persistence and themes. Gate: inspected screenshots at 1280x720, 1920x1080 and narrow/zoomed viewport; pointer and keyboard operation; no obscured controls, layout overflow or broken original statement rendering. Test closing/reopening and page navigation.
+Back up and restore-check the local history, including P3. Verify GitHub's fork parent, the default branch, the original phase commits and the backup repository. Publish the verified P0–P3 history to the owner's fork with explicit branch pushes. Credit the original author in the README, show the P2/P3 captures, and verify the source-install link and offline regressions. Stop for review before P4.
 
-## P6 — Personalization
-Complete storage migration, cursor/scroll restoration, custom snippets/templates and configurable action shortcuts; resolve legacy shortcut conflicts explicitly. Gate: upgrade/reload/restart, multiple problems/languages, Unicode snippets and cursor placeholders, IME, shortcut conflicts, no data loss, and explicit submit confirmation. No duplicate Git integration.
+## P4 — Final workspace and verification (planned)
 
-## P7 — Integration and release readiness
-Run full regressions and inspect real Windows Chrome installation with MSVC/clangd; test no-host, old-host, upgrade/uninstall, multiple tabs, service worker suspension, native crashes, large outputs and sustained sessions. Validate package contents, licenses, identity and dependency reproducibility. Measure baseline vs final startup, compile/cache time, completion responsiveness and process/memory cleanup where possible. Apply the account-safety rules above to live rendering and to any owner-provided evidence of authenticated submission or external Git compatibility. Gate: evidence-backed report, open blockers clearly stated, local installable artifact if permitted, migration/recovery instructions and no unapproved release.
+| Work | Acceptance at the final gate |
+| --- | --- |
+| Persistent test cases and tabs | Keep BOJ samples in their original order. Add, edit, delete and reorder custom cases per problem. Restore tab order and selection after reload. Run the selected case or all cases with one compile per batch. Distinguish missing expected output (run only) from an expected empty string. Retain raw output and check CRLF, multiline and Unicode diffs, stderr, output limits, timeout, stop, EOF, editing during a run and independent jobs. |
+| User-defined snippets and shortcuts | Create, edit, insert and delete language-specific snippets. Verify Unicode, cursor placeholders and shortcut conflicts with Korean IME. Test upgrades, reloads and restarts with existing templates, drafts, cursor and scroll positions. If an action shortcut changes, explain the new binding. A submit shortcut may only open the official form. |
+| Optional Power Mode | Ship it **disabled by default**. After opt-in, offer typing particles, combos, presets and configurable intensity. Verify the default on new and upgraded profiles, persistence of an explicit choice, ordinary editing and IME at each intensity, and cleanup of animations and timers on disable, collapse and navigation. Measure typing responsiveness with effects off and on. |
+| Minimal workspace UI | Remove redundant text and decorative elements while retaining control names, errors, diagnostics, remote-execution consent and manual submission guidance. Keep the statement, terminal, test and judge panels usable. Verify keyboard and pointer resizing, tab reordering, collapse/maximize, focus mode, reset, themes and persisted layout. Inspect captures at 1280×720, 1920×1080 and a narrow or zoomed viewport. |
+| Multiple submission tabs | Scope pending code, language, privacy, judge updates, focus return and cleanup to each problem tab and its managed form. Promote the existing expected failure to a passing fixture test. Open both forms, interleave results, close one early and confirm the other survives. Include two origins on the same problem. Use local fixtures for the entire sequence. |
+| Installation, performance and regressions | Run the P0–P3 suites and the new P4 cases in unpacked Windows Chrome. Check MSVC, GCC, Python, clangd, the missing/old-host paths and consent for Wandbox with doubles. Exercise install, upgrade, uninstall, service-worker suspension, native crashes, navigation and sustained use. Compare startup, cache reuse, completion latency, memory and process cleanup with the recorded baselines. Verify the package, extension identity, third-party notices and reproducible assets. |
+
+The final review includes the evidence, installation and recovery steps, and remaining limitations. Authenticated BOJ submission and the external Git integration can be checked only during ordinary owner-initiated problem solving. Release publication requires separate approval.
