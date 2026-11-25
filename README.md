@@ -1,193 +1,137 @@
-# Convenient_BOJ · Windows C++ 워크스페이스
+# Convenient_BOJ · 편한 백준
 
-**원작은 gaudium1257님의 Convenient_BOJ입니다.** 백준 문제 옆에서 코드를 작성하고 예제를 실행한 뒤, 공식 제출 페이지를 열고 채점 결과를 확인하는 크롬 확장입니다. kusonnim은 원작자의 허락을 받아 이 포크를 관리합니다. [원본 저장소](https://github.com/gaudium1257/Convenient_BOJ)
+백준 문제 옆에 편집기를 열어 코드를 작성하고 예제를 실행하는 Chrome 확장 프로그램입니다. 채점 결과도 같은 화면에서 확인할 수 있습니다. **원작자는 gaudium1257님**이며, kusonnim은 원작자의 허락을 받아 이 포크에 Windows용 C++ 개발 도구를 추가했습니다. [원작 저장소](https://github.com/gaudium1257/Convenient_BOJ) · [포크 저장소](https://github.com/kusonnim/Convenient_BOJ-Workspace) · [설치 방법](#installation)
 
-The original split workspace, drafts, templates, C/C++/Python runner, official submission form and judge view are **gaudium1257’s Convenient BOJ**. This fork incorporates the v1.4.0 sample selectors, per-problem custom-case format, normalized output diff and bounded Wandbox batch execution. The owner obtained the original author's permission. [Upstream](https://github.com/gaudium1257/Convenient_BOJ) · [Upstream v1.4.0](https://github.com/gaudium1257/Convenient_BOJ/tree/v1.4.0)
+![왼쪽에는 백준 10818번 문제와 예제가, 오른쪽에는 C++ 코드와 MSVC 실행 결과가 보이는 분할 화면](docs/screenshots/workspace/workspace.png)
 
-| Fork additions | What you can use |
-| --- | --- |
-| Windows MSVC and execution reliability | x64 C++17/20, unchanged BOJ language selection, dependency-aware build reuse, isolated case processes, cancellation, timeouts and process-tree cleanup. Wandbox needs an explicit choice. |
-| Monaco Editor and local C++ IntelliSense | Multi-cursor editing, folding, find/replace and local clangd completion, signatures, definitions and diagnostics. C and Python retain Monaco language and document-word completion. |
-| Tests and snippets | Select, name, drag or keyboard-reorder custom cases, run one or all enabled cases, inspect raw output and the first differing lines. Save language-specific snippets with tab stops in the popup. |
-| Workspace and submissions | Resizable test, terminal, diagnostics and judge panes. Per-tab prefilling and judge routing keep each form with its originating workspace. Only the user submits on BOJ. |
-| Editor navigation and local tools | Eight themes, Breadcrumbs, Sticky Scroll, semantic occurrence highlighting, local C/C++ formatting and clickable compiler locations. Export drafts, tests, snippets and settings from the popup. |
-| Optional Power Mode | Typing particles, three presets, adjustable intensity, combo bursts and optional shake. Off by default. The editor respects reduced motion. |
+*백준 10818번 「최소, 최대」의 공식 예제와 음수만 넣은 테스트를 내 PC에서 실행해 둘 다 통과한 화면입니다.* [화면 크게 보기](docs/screenshots/workspace/workspace.png) · [백준 10818번](https://acmicpc.net/problem/10818)
 
-The default branch contains the integrated workspace. The bundled editor runs from the unpacked extension. Local execution, C++ analysis and formatting use the optional Windows helper. [Installation](#installation) · [Final verification and limitations](docs/development/P4.2.md)
+## 원작과 이 포크의 차이
 
-![Custom tests and the original BOJ statement in the integrated Chrome extension](docs/development/evidence/p42/light-cases.png)
+| 구분 | gaudium1257님의 원작에서 이어받은 기능 | 이 포크에서 추가한 기능 |
+| --- | --- | --- |
+| 편집 | 문제와 코드의 분할 화면, 문제·언어별 초안과 커서 복원, 언어별 기본 코드 | Monaco 편집기, clangd 기반 C++ IntelliSense, 사용자 스니펫, 테마 8종과 Power Mode |
+| 실행 | GCC로 C·C++ 실행, Python 실행, 로컬 대화형 터미널과 온라인 Wandbox 실행 | Windows x64 MSVC, 빌드 결과 재사용, 테스트별 프로세스 분리와 일괄 실행 취소, Wandbox 전송 전 사용자 선택 |
+| 테스트 | v1.4.0의 예제 추출, 문제별 사용자 테스트 저장 형식, 줄 단위 출력 비교, Wandbox 동시 실행 수 제한 | 테스트 이름·순서 변경, 선택 실행, 빈 출력 비교, 원본 입출력 확인 |
+| 제출·저장 | 공식 제출 페이지에 코드·언어 채우기, 수동 제출 후 채점 결과 표시 | 여러 문제 탭을 열어도 각각의 제출과 결과를 연결하고, 초안·테스트·스니펫·설정을 파일로 백업 |
 
-![Breadcrumbs, Sticky Scroll and semantic occurrences in a C++ fixture](docs/development/evidence/p42/scope-highlights.png)
+원작 v1.4.0에는 Java 실행과 풀이 타이머도 있습니다. 아래 설치·실행 안내와 화면은 Windows용 Chrome에서 검증한 포크 1.4.1을 기준으로 합니다. [원작 v1.4.0](https://github.com/gaudium1257/Convenient_BOJ/tree/v1.4.0) · [원작 배포판](https://github.com/gaudium1257/Convenient_BOJ/releases/latest)
 
-![Real typing with the Aurora preset in the integrated editor](docs/development/evidence/p42/power-mode.gif)
+<a name="installation"></a>
 
-로컬 테스트 페이지에서 `std::vector`의 `push_back` 오버로드 두 개를 제안하는 실제 P3 화면입니다.
+## 설치
 
-![Monaco의 clangd 멤버 완성과 MSVC 헤더 분석 상태](docs/development/evidence/p3/completion-light.png)
+### Chrome에 확장 프로그램 추가하기
 
-## 기능
+1. 이 포크의 `main` ZIP을 내려받아 계속 사용할 폴더에 압축을 풉니다. Git으로 포크를 복제해도 됩니다. [포크 ZIP 내려받기](https://github.com/kusonnim/Convenient_BOJ-Workspace/archive/refs/heads/main.zip)
+2. Chrome 주소창에 `chrome://extensions`를 입력하고 오른쪽 위 **개발자 모드**를 켭니다.
+3. **압축해제된 확장 프로그램을 로드합니다**를 누르고 `manifest.json`과 `host`가 바로 보이는 폴더를 선택합니다. ZIP을 풀었다면 `Convenient_BOJ-Workspace-main`입니다.
+4. 백준 문제 탭을 새로고침하고 제목 옆 **⇆ 코드 작성**을 누릅니다. Chrome은 설치 폴더에서 확장을 읽으므로 그 폴더를 같은 위치에 두세요.
 
-### ⇆ 분할 화면 (문제 | 코드)
-- 문제 페이지(`/problem/번호`)에서 제목 옆 **[⇆ 코드 작성]** 버튼이나 **Alt + C**로 엽니다.
-- 왼쪽에는 원래 문제가 그대로 있고, 오른쪽에 코드 에디터와 결과 창이 붙습니다.
-- 패널 왼쪽 경계와 에디터·결과 사이 경계를 끌어서 크기를 바꿀 수 있어요(크기는 기억돼요).
-- 작성한 코드는 **문제·언어별로 자동 저장**돼서 다시 열어도 그대로 있어요.
-- 코드 작성에는 VS Code의 **Monaco Editor**를 사용해요. 선택한 텍스트를 끌어서 옮기거나, Alt+클릭으로 여러 곳을 동시에 편집할 수 있어요. Shift+Alt를 누르고 끌면 열을 선택해요. 미니맵은 팝업에서 켤 수 있어요.
-- **들여쓰기**는 팝업에서 고를 수 있어요.
-  - **탭**(기본): Tab 키가 탭 문자 하나를 넣고, Backspace 한 번에 지워져요. 들여쓰기의 탭은 화살표로, 공백은 점으로 보여요.
-  - **공백 4칸**: Tab 키가 공백을 4칸 단위로 넣고, 줄 앞 공백은 Backspace 한 번에 4칸씩 지워져요.
-- **엔터 자동 들여쓰기는 VS Code 규칙**을 따라요.
-  - C/C++: 닫히지 않은 `{` 또는 `(`로 끝나는 줄 다음만 한 단계 들여쓰기 (`;`가 빠진 줄, `if (x)` 다음은 같은 깊이)
-  - Python: `def`/`if`/`for`/`while`/`else`… 로 시작해 `:`로 끝나는 줄, 열린 괄호로 끝나는 줄 다음은 들여쓰기, `return`/`pass`/`break`/`continue`/`raise` 다음은 내어쓰기
-  - 괄호 쌍 사이(`{|}`, `(|)`, `[|]`)에서 엔터를 누르면 가운데 줄을 만들고 닫는 괄호는 원래 깊이로
-- 새 문제를 열 때 들어가는 **기본 코드는 팝업에서 언어별로 바꿀 수 있어요.** `$0` 자리에 커서가 놓여요.
-  다시 열면 마지막으로 작업하던 위치로 돌아가요.
-  - C++: 백준 권장 빠른 입출력(`ios::sync_with_stdio(false); cin.tie(nullptr);`)이 들어간 형태
-  - C: `stdio.h` + `main` 뼈대
-  - Python: 빈 코드 (빠른 입력이 필요하면 `import sys` / `input = sys.stdin.readline` 을 추가해 두세요)
+Monaco와 테마는 확장에 포함되어 있어 바로 편집할 수 있습니다. 온라인 실행을 원하면 팝업에서 Wandbox를 선택하거나 실행 시 전송 안내에 동의하세요. 이때 소스 코드와 입력이 Wandbox 서버로 전송됩니다.
 
-[원작의 코드 작성 버튼](docs/screenshots/01-toggle-button.jpg) · [원작 v1.3.3 분할 화면](docs/screenshots/02-split-view.jpg)
+### 내 PC에서 실행하기 (Windows, 선택)
 
-### C++ 코드 분석
+1. 확장 폴더의 `host\install.bat`를 실행합니다. 도우미에는 Python 3.9 이상이 필요합니다. 설치 프로그램은 기존 도구를 먼저 찾고, 필요한 경우 Python이나 WinLibs(GCC)를 설치할지 묻습니다.
+2. C++17·20을 MSVC로 실행하려면 Visual Studio 또는 Build Tools의 x64 C++ 도구와 Windows SDK가 필요합니다. C에는 GCC를, Python에는 로컬 Python을 사용합니다.
+3. 문제 탭을 새로고침하고 **터미널** 오른쪽에 **내 PC**가 표시되는지 확인합니다. C++ IntelliSense에는 로컬 clangd와 호환되는 C++ 헤더가, C·C++ 서식 정리에는 `clang-format`이 필요합니다. [clangd 공식 설치 안내](https://clangd.llvm.org/installation)
 
-C++ 초안을 열면 도우미가 설치된 clangd와 호환되는 표준 라이브러리 헤더를 찾습니다. 편집기 아래에서 분석에 사용하는 헤더 환경을 확인할 수 있어요. Ctrl+Space로 완성을 열고 F12로 선언을 찾아가세요. 표준 라이브러리의 선언은 읽기 전용으로 열립니다. clangd의 밑줄은 편집 중 진단이고, 실행할 때의 컴파일 결과는 터미널에 표시돼요. clangd가 없어도 기본 편집과 설치된 컴파일러를 이용한 실행은 사용할 수 있어요. [진단 화면](docs/development/evidence/p3/diagnostic-dark.png) · [함수 매개변수 안내](docs/development/evidence/p3/signature-help.png)
+도우미는 현재 사용자의 `%LOCALAPPDATA%\ConvenientBOJ`에 설치되고 기본적으로 Chrome·Edge·웨일에 등록됩니다. 도구가 이미 설치되어 있고 Chrome에만 등록하려면 확장 폴더에서 PowerShell로 `.\host\install.ps1 -RegisterOnly -ChromeOnly`를 실행하세요.
 
-### ▶ 실행: C / C++ / Python
-- **실행**(Ctrl + Enter)을 누르면 결과 창이 **터미널**로 바뀌고, 문제의 **예제 입력으로 코드를 돌려 예제 출력과 비교**해요.
-  - 틀린 예제는 입력 / 기대 출력 / 내 출력을 나란히 보여 줘요.
-  - 컴파일 에러, 런타임 에러, stderr도 그대로 보여 줘요.
-- 터미널 아래 칸에서 **직접 실행**할 수 있어요.
-  - [내 PC 실행 도우미](#2단계-내-pc에서-실행-진짜-터미널-선택)를 설치했다면 **VS Code 터미널처럼** 동작해요. 프로그램이 실행 중일 때 입력하고 Enter를 치면 바로 전달돼요. Ctrl+C로 중지, Ctrl+D로 입력 끝.
-  - 로컬 도구가 없으면 코드와 입력을 Wandbox에 보낼지 실행할 때 물어봐요. 동의하면 결과를 한꺼번에 보여 줘요.
-- 터미널 탭 오른쪽 위에 지금 **실행 위치**(● 내 PC / ● Wandbox)가 보여요.
-- 언어 목록은 백준의 언어 설정에서 고른 언어를 따라요. C(C99/C11/…), C++(C++14/17/20/…, Clang 포함), Python 3 / PyPy3 를 지원해요.
-- 팝업의 **실행 환경**에서 MSVC, GCC 또는 Wandbox를 고를 수 있어요. 자동 모드는 C++17/20에 설치된 x64 MSVC를 우선하고, 다른 C++ 표준에는 가능한 경우 GCC를 사용해요. 백준 제출 언어는 따로 유지돼요.
-- MSVC는 `/O2 /EHsc /utf-8`, 선택한 `/std:c++17` 또는 `/std:c++20`과 `ONLINE_JUDGE`, `BOJ` 매크로를 사용해요. GCC는 `-O2 -std=<언어 버전> -DONLINE_JUDGE -DBOJ`를 쓰고 C에는 `-lm`을 추가해요.
-- MSVC의 새 C++ 코드는 `<iostream>`으로 시작해요. GNU 전용 `bits/stdc++.h`, `__int128` 등이 필요한 코드는 GCC로 실행할 수 있어요. 대화형 출력은 필요할 때 `std::flush`나 `std::endl`로 비워 주세요.
-- 같은 탭에서 소스, 컴파일 설정과 헤더가 같으면 빌드 결과를 재사용해요. 예제 실행 중 **■ 중지**를 누르면 컴파일이나 실행을 취소할 수 있어요.
+**업데이트하려면** 새 파일을 기존 폴더에 풀고 `chrome://extensions`에서 확장을 새로고침한 뒤 문제 탭도 새로고침하세요. 도우미가 바뀌었으면 `host\install.bat`를 다시 실행합니다. **도우미 제거**에는 `host\uninstall.bat`를 사용합니다. Python과 컴파일러는 별도로 관리합니다.
 
-아래 P2 화면에서는 어두운 Monaco 편집기에서 작성한 코드를 로컬 MSVC로 실행했어요. 터미널에 빌드 캐시 재사용과 예제 두 개의 통과 결과가 보입니다.
+## 편집과 C++ IntelliSense
 
-![P2 로컬 테스트 페이지에서 MSVC 빌드를 재사용해 두 예제를 통과한 터미널](docs/development/evidence/p2/monaco-msvc-dark.png)
+분할 화면의 경계를 끌거나 경계에 초점을 두고 방향키를 눌러 편집기 너비와 아래 패널 높이를 조절하세요. 경계를 두 번 클릭하면 기본 크기로 돌아갑니다. 초안과 편집 위치는 문제·언어별로 저장됩니다.
 
-원작의 실행 화면도 참고할 수 있어요. [예제 통과](docs/screenshots/03-run-pass.jpg) · [예제 불일치](docs/screenshots/04-run-wrong.jpg) · [컴파일 오류](docs/screenshots/05-compile-error-dark.jpg)
+Monaco에서 `Alt`를 누른 채 클릭하면 커서를 추가하고, `Shift+Alt`를 누른 채 끌면 열 단위로 선택합니다. 코드 접기, 찾기·바꾸기, 자동 들여쓰기를 지원합니다. 팝업에서 들여쓰기를 **탭** 또는 **공백 4칸**으로 고르고, 자주 쓰는 시작 코드를 **기본 코드**에 저장하세요. `$0`은 새 초안의 첫 커서 위치입니다.
 
-### 제출 → 정/오답 확인
-1. 분할 화면(A)에서 **제출**(Ctrl + Shift + Enter)을 누르면 같은 창의 바로 옆에 백준 제출 탭(B)이 열리고, **작성한 코드와 언어가 채워져 있어요.**
-2. B에서 백준의 **[제출]** 버튼만 누르면 돼요.
-   백준 제출에는 보안 확인(reCAPTCHA)이 있어서, 마지막 버튼은 사람이 직접 눌러야 해요.
-3. 제출하자마자 **포커스가 A로 돌아와요.** B는 뒤에서 채점 현황을 지켜보고,
-   A의 **채점** 탭에 `채점 중 → 맞았습니다!!` 가 실시간으로 표시돼요.
-4. 채점이 끝나면 **B는 자동으로 닫혀요.** 채점 전에 B를 직접 닫으면 A에 "제출 기록 열기" 안내가 떠요.
+C++에서 `Ctrl+Space`를 누르면 clangd가 현재 타입과 헤더를 바탕으로 완성을 제안합니다. 함수 호출 중에는 매개변수를 확인하고, `F12`로 선언을 열 수 있습니다. 표준 라이브러리 헤더는 읽기 전용으로 열립니다. clangd가 없을 때와 C·Python을 편집할 때는 기본 자동완성을 사용합니다.
 
-| 원작의 제출 탭 | 원작의 채점 결과 화면 |
-| --- | --- |
-| ![](docs/screenshots/06-submit-window-filled.jpg) | ![](docs/screenshots/07-judge-result-ac.jpg) |
+![std::vector의 begin 멤버를 제안하고 반환 타입을 보여 주는 clangd 완성 목록](docs/screenshots/workspace/intellisense.png)
 
-- 메모리·시간·코드 보기 링크와 **이 문제 내 제출 기록** 링크를 함께 보여 줘요.
-- 코드 공개 설정은 팝업에서 고를 수 있어요(기본값: 백준 설정을 따름).
-- Each problem tab owns its form and result. When simultaneous forms for the same account and problem lead to an unfiltered status page, use the official submission history to identify the submission. [Fixture verification](docs/development/P4.md)
+*10818번 풀이에서 `numbers.be`까지 입력했을 때의 완성 목록입니다. 편집기 아래에 clangd가 사용하는 MSVC 헤더 환경이 표시됩니다.*
 
-Development checks use local fixtures for submission, judging and polling. Final submission on BOJ and verification of an external Git workflow belong to the user’s own problem-solving session. Automated and AI-generated submissions are prohibited. [Account-safety rules](PROJECT_SPEC.md#mandatory-boj-account-safety)
+편집 중 발견한 오류는 **진단** 탭에 표시됩니다. 항목을 누르면 해당 코드로 이동합니다. 실행할 때 컴파일러가 낸 오류는 **터미널**에서 확인할 수 있고, 같은 버전의 초안이면 오류 위치를 눌러 이동할 수 있습니다.
 
-## Installation
+![begin을 begni로 잘못 입력한 12행의 밑줄과 진단 탭에 표시된 clangd 오류](docs/screenshots/workspace/diagnostics.png)
 
-### 1단계: 확장 프로그램 (필수)
+*직전 테스트를 통과한 뒤 `begin`을 `begni`로 잘못 입력하자, 다시 실행하기 전에 clangd가 12행의 오타를 표시했습니다.*
 
-1. Download and extract the fork’s default branch, or clone the fork. The extracted folder is `Convenient_BOJ-Workspace-main`. Monaco, its worker and the theme assets are included. [Download the main ZIP](https://github.com/kusonnim/Convenient_BOJ-Workspace/archive/refs/heads/main.zip) · [Official fork](https://github.com/kusonnim/Convenient_BOJ-Workspace)
-2. 크롬 주소창에 `chrome://extensions` 를 입력합니다.
-3. 오른쪽 위 **개발자 모드**를 켭니다.
-4. **압축해제된 확장 프로그램을 로드합니다**를 누르고, `manifest.json`과 `host`가 바로 보이는 프로젝트 루트 폴더를 고릅니다.
-5. 백준 문제 페이지를 새로고침하면 끝!
+## 테스트와 터미널
 
-> 압축을 푼 폴더는 지우지 마세요. 크롬이 그 폴더에서 확장을 읽어요.
+**테스트** 탭에는 문제의 예제가 원래 순서대로 표시됩니다. **+**를 눌러 문제별 테스트를 추가하고 이름, 입력, 기대 출력을 적으세요. 직접 만든 탭은 끌거나 탭에 초점을 둔 채 `Alt+←` 또는 `Alt+→`를 눌러 순서를 바꿀 수 있습니다.
 
-도우미 없이 온라인으로 실행하려면 Wandbox 전송 안내에서 동의하거나 팝업에서 Wandbox를 선택해요.
+![음수 네 개를 입력하고 기대 출력을 -9 -2로 지정한 사용자 테스트](docs/screenshots/workspace/cases.png)
 
-gaudium1257님의 원작 배포판은 별도로 받을 수 있어요. [원작 Releases](https://github.com/gaudium1257/Convenient_BOJ/releases/latest)
+*「음수만 있는 경우」를 **선택 실행**하면 이 입력만 확인합니다. **전체에 포함**을 켜면 예제와 함께 실행합니다.*
 
-### 2단계: 내 PC에서 실행 (진짜 터미널, 선택)
+- **기대 출력**을 끄면 결과만 봅니다. 켜고 비워 두면 출력이 비어 있는지도 검사합니다. 비교할 때는 줄바꿈 방식, 줄 끝의 공백·탭, 마지막 빈 줄을 무시합니다. 결과가 다르면 처음 다른 줄을 보여 줍니다. **원본 입출력**에서 입력과 기대 출력, 표준 출력(`stdout`)과 표준 오류(`stderr`)를 확인할 수 있습니다.
+- **실행 환경**을 자동으로 두면 C++17·20은 사용 가능한 x64 MSVC를 우선하고, 다른 표준에는 가능한 경우 GCC를 씁니다. 로컬 컴파일러와 백준 제출 언어는 따로 선택합니다. 같은 탭에서 소스·설정·헤더가 같으면 빌드 결과를 재사용합니다.
+- **터미널에서 실행**을 누르면 프로그램에 직접 입력할 수 있습니다. `Enter`로 입력을 보내고 `Ctrl+D`로 입력을 끝내며 `Ctrl+C`로 중지합니다. C++ 출력이 버퍼에 남아 있다면 `std::flush`나 `std::endl`로 비우세요. Wandbox에서는 실행 전에 입력을 한꺼번에 전달합니다.
 
-코드를 내 PC에서 컴파일·실행하고, VS Code처럼 실행 중에 입력을 주고받는 **진짜 터미널**을 쓰려면 (Windows):
+## 제출과 채점
 
-1. 압축을 푼 폴더의 **`host\install.bat`** 을 더블클릭해요.
-2. 묻는 대로 답해요. (모두 Enter = 예)
-   - Python이 없으면 설치할지 물어봐요. (도우미가 Python으로 동작해요)
-   - 설치된 Visual Studio 또는 Build Tools의 x64 C++ 도구와 Windows SDK를 자동으로 찾아요. MSVC와 g++를 찾지 못하면 WinLibs 설치 여부를 물어봐요. Python만 쓰면 건너뛰어도 돼요.
-3. 백준 문제 탭을 새로고침하면 터미널 탭 오른쪽 위가 **● 내 PC** 로 바뀌어요.
+1. 편집기 위의 **제출**을 누르면 옆 탭에 백준 공식 제출 페이지가 열리고 초안과 언어가 채워집니다. 코드 공개 범위의 기본값은 백준 설정을 따릅니다.
+2. 코드와 언어를 확인하고 보안 확인(reCAPTCHA)이 표시되면 직접 완료하세요. **공식 페이지의 제출 버튼은 사용자가 직접 누릅니다.**
+3. 제출하면 원래 문제 탭으로 돌아옵니다. **채점**에서 결과와 메모리, 실행 시간, 코드 보기 링크를 확인하세요. 채점이 끝나면 확장이 연 제출 탭은 닫힙니다. 탭을 일찍 닫았거나 같은 문제의 여러 제출을 구분하기 어려우면 **제출 기록 열기**를 이용하세요.
 
-- 관리자 권한은 필요 없어요. 도우미는 `%LOCALAPPDATA%\ConvenientBOJ` 에 설치되고 크롬·엣지·웨일에 등록돼요.
-- 지우려면 `host\uninstall.bat` 을 실행해요. (Python·gcc는 지우지 않아요)
-- 이전 도우미에서 MSVC를 사용하려면 새 폴더의 `host\install.bat`을 다시 실행하고 문제 탭을 새로고침해요. 기존 도구로 Chrome에만 등록할 때는 PowerShell에서 `.\host\install.ps1 -RegisterOnly -ChromeOnly`를 실행해요.
-- C/C++ 서식 정리는 로컬 `clang-format`과 최신 도우미가 필요해요. 편집기에서 Shift+Alt+F를 누르고 Ctrl+Z로 되돌릴 수 있어요.
-- C++ IntelliSense에는 도우미, 로컬 clangd와 호환되는 C++ 헤더가 필요해요. 이미 설치된 Visual Studio C++ 도구와 Windows SDK 또는 GCC 헤더를 사용할 수 있어요. clangd가 없다면 설치 후 편집기를 다시 여세요. [clangd 공식 설치 안내](https://clangd.llvm.org/installation)
+## 설정과 백업
 
-### 업데이트
-같은 `main` ZIP에서 받은 확장 파일을 기존 설치 폴더에 반영한 뒤 `chrome://extensions`에서 Convenient BOJ의 새로고침(↻)을 누르고 문제 탭도 새로고침해 주세요. 도우미가 바뀌었으면 새 설치 폴더의 `host\install.bat`도 다시 실행해 주세요.
+![실행 환경에서 MSVC를 고르고 편집기 테마와 들여쓰기를 설정하는 확장 팝업](docs/screenshots/workspace/settings.png)
 
-단계별 개발 기록과 최종 검증 결과는 로드맵에서 볼 수 있어요. [단계별 로드맵](ROADMAP.md)
+*확장 아이콘을 누르면 로컬 도구의 연결 상태를 확인하고 실행 환경, 테마, 미니맵과 들여쓰기를 바꿀 수 있습니다.*
+
+- **편집 및 실행 설정**에서 글자 크기, 줄 높이, 자동 줄 바꿈, 고정 스크롤, 괄호 안내선, 같은 기호 강조와 실행 시간 제한을 조절합니다. 편집기 위의 **기호 탐색 경로**를 누르면 함수나 클래스 목록에서 이동할 곳을 고를 수 있습니다.
+- **사용자 스니펫**에 언어별 접두어와 본문을 저장하세요. 편집기에서 접두어를 입력하고 `Ctrl+Space`로 스니펫을 고릅니다. `Tab`을 누르면 `${1:값}`처럼 표시한 입력 위치를 차례로 거쳐 `$0`으로 이동합니다.
+- **초안·테스트·설정 백업**에서 초안, 테스트, 스니펫과 설정을 평문 JSON 파일로 내보냅니다. 가져올 때 기본값은 **기존 값 유지**입니다. **충돌 값 교체**는 확인을 거치며 열린 초안은 보호됩니다. Wandbox 설정을 복원할 때도 전송 여부를 다시 확인합니다. 백업에는 작성 중인 코드가 들어 있으므로 비공개로 보관하세요.
+
+**Power Mode**는 기본으로 꺼져 있습니다. 켜면 Spark·Aurora·Pixel 중에서 입력 효과를 고르고 입자 강도와 화면 흔들림을 조절할 수 있습니다. 시스템의 동작 줄이기 설정을 켜면 입력 효과도 꺼집니다.
+
+<details>
+<summary>Power Mode 입력 효과 보기</summary>
+
+![10818번 풀이에 주석을 입력할 때 커서 주위에 Aurora 입자가 퍼지고 콤보 숫자가 올라가는 모습](docs/screenshots/workspace/power-mode.gif)
+
+*같은 초안에 주석을 입력하며 촬영한 Aurora 효과입니다.*
+
+</details>
 
 ## 단축키
 
-| 키 | 동작 |
+팝업의 **단축키**에서 **기존** 또는 **테스트 중심**을 고를 수 있습니다.
+
+| 동작 | 기존 (기본값) | 테스트 중심 |
+| --- | --- | --- |
+| 선택한 테스트 실행 | `Ctrl+Alt+Enter` | `Ctrl+Enter` 또는 `Ctrl+Alt+Enter` |
+| 전체 테스트 실행 | `Ctrl+Enter` | `Ctrl+Shift+Enter` |
+| 공식 제출 페이지 열기 | `Ctrl+Shift+Enter` | `Ctrl+Shift+S` |
+
+| 공통 단축키 | 동작 |
 | --- | --- |
-| Alt + C | 분할 화면 열기/닫기 |
-| Ctrl + Enter | 전체 테스트 실행 |
-| Ctrl + Shift + Enter | 제출 탭 열기 |
-| Ctrl + Alt + Enter | 선택한 테스트 실행 |
-| Ctrl + Shift + X | 실행 중지 |
-| Ctrl + S | 코드 저장 |
-| Ctrl + Space | 완성 목록 열기 (C++ 분석이 연결되면 clangd 제안 표시) |
-| Alt + Z | 자동 줄 바꿈 전환 |
-| Shift + Alt + F | C/C++ 서식 정리 (로컬 clang-format) |
-| F12 | C++ 분석이 연결된 편집기에서 선언으로 이동 |
-| Ctrl + F | 편집기 안에서 찾기 (왼쪽 화살표로 바꾸기 열기) |
-| Alt + ↑ / ↓ | 줄 이동 |
-| Shift + Alt + ↑ / ↓ | 줄 복제 |
+| `Alt+C` / `Ctrl+S` | 분할 화면 열기·닫기 / 초안 저장 |
+| `Ctrl+Shift+X` | 실행 중지 |
+| `Ctrl+Space` / `F12` | 자동완성 열기 / C++ 선언으로 이동 |
+| `Ctrl+F` / `Ctrl+H` | 찾기 / 바꾸기 |
+| `Alt+Z` / `Shift+Alt+F` | 자동 줄 바꿈 전환 / C·C++ 서식 정리 (`Ctrl+Z`로 되돌리기) |
+| `Alt+↑`·`Alt+↓` / `Shift+Alt+↑`·`Shift+Alt+↓` | 줄 이동 / 줄 복제 |
 
-The optional test-first shortcut profile assigns Ctrl+Enter to the selected case, Ctrl+Shift+Enter to all tests and Ctrl+Shift+S to opening the official form. The classic profile remains the default.
+## 알려진 제한 사항
 
-On the integrated Windows build, the STL fixture measured 3.12 s from opening the panel to first semantic completion, 124 ms median for five warm completions, 271 ms from edit to diagnostic and 55.8 MiB for clangd. The original P3 run measured 3.56 s, 232 ms, 897 ms and 67.4 MiB in the same workload. [Performance and raw measurements](docs/development/P4.2.md#performance)
+- 도우미는 현재 Windows 사용자의 권한으로 코드를 실행합니다. MSVC로 시작하는 새 C++ 초안은 `<iostream>`을 사용합니다. GNU 전용 `bits/stdc++.h`나 `__int128`이 필요한 코드는 GCC로 실행하세요. 로컬 실행 시간과 스페셜 저지 문제의 예제 비교 결과는 참고용입니다.
+- 초안·사용자 테스트·스니펫은 Chrome 프로필의 로컬 저장소에 있습니다. 테마와 기본 코드 등은 Chrome 동기화 설정을 따릅니다. 확장 ID를 고정한 1.3.0보다 오래된 버전에서 옮길 때는 초안과 설정을 먼저 따로 보관하세요.
+- Windows용 Chrome에서 검증했습니다. 다른 운영체제와 Edge·웨일의 동작은 확인 전입니다. Wandbox 연동은 모의 서버로, 제출·채점·상태 조회는 로컬 테스트 페이지로 검증했습니다. 실제 계정에서의 제출과 외부 Git 연동은 아직 검증하지 않았습니다. 실제 제출은 사용자가 직접 푼 문제로만 진행하며, 자동 제출과 AI가 생성한 풀이 제출은 금지합니다. [백준 계정 보호 원칙](PROJECT_SPEC.md#mandatory-boj-account-safety)
+- 같은 Windows PC에서 C++ 표준 라이브러리 예제의 첫 자동완성까지 3.12초가 걸렸습니다. 이후 다섯 번의 중앙값은 124ms였습니다. 측정 조건, 진단 응답 시간과 메모리 사용량은 검증 기록에 있습니다. [성능 측정 결과](docs/development/P4.2.md#performance)
 
-## Tests and snippets
+## 프로젝트 구조와 개발 문서
 
-The Tests tab reads BOJ samples in place. Add a custom tab with **+**. Use the checkbox beside the expected output to compare even an empty string. An unchecked expectation runs the input and displays stdout. A separate checkbox controls inclusion in batch runs. Drag a custom tab or use Alt+Left/Right while it has focus. Raw input, expected output, stdout and stderr remain available in the terminal. The comparison ignores trailing horizontal whitespace, carriage returns and trailing empty lines. Special-judge results are indicative.
+| 위치 | 내용 |
+| --- | --- |
+| `manifest.json`, `background.js` | 확장 설정, 실행 요청과 제출 탭 관리 |
+| `content/`, `shared/` | 분할 화면, 백준 페이지 연동, 공통 설정과 저장 형식 |
+| `editor/`, `popup/` | Monaco 편집 화면과 설정 팝업 |
+| `host/` | Windows 실행·분석 도우미와 설치·제거 스크립트 |
+| `vendor/`, `tools/monaco/` | 확장에 포함된 편집기·테마·라이선스와 빌드 도구 |
+| `docs/screenshots/`, `docs/development/` | 사용 화면, 단계별 검증 기록과 측정 자료 |
 
-Open **사용자 스니펫** in the popup, choose C++, C or Python, and save a prefix and body. Type the prefix in Monaco and press Ctrl+Space. Numbered placeholders such as `${1:value}` accept text and Tab advances to the next position. `$0` sets the final position. Snippets stay in local extension storage.
-
-## Themes, navigation and backup
-
-Choose a palette in the popup. **편집 및 실행 설정** controls type size, line height, wrapping, Sticky Scroll, bracket guides, occurrences, Breadcrumbs and local execution time limits. Breadcrumbs open a symbol picker. C++ scopes and semantic reads use local clangd when available. Compiler messages link to the matching revision of the active draft. Shift+Alt+F runs the local C/C++ formatter as one undoable edit.
-
-Use **초안·테스트·설정 백업** to download a local plaintext JSON copy. The default restore keeps existing conflicts and adds missing records. Explicit replacement prompts before applying conflicts. Open drafts are protected, and restoring a Wandbox preference asks for consent. Keep a backup private if it contains unpublished code.
-
-## 알아 두면 좋은 점
-
-- **코드 실행 위치:** 내 PC 도우미는 현재 사용자의 권한으로 코드를 실행해요. Wandbox를 선택하면 코드와 입력이 그 서버로 보내져요. 로컬 실행 시간은 백준 채점 시간과 다를 수 있어요.
-- 1.3.0부터 확장 프로그램 ID를 고정했어요(도우미가 이 확장의 요청만 받도록). 그 전 버전을 쓰던 경우, 처음 한 번은 저장된 코드·설정이 초기화될 수 있어요.
-- **제출은 백준의 진짜 제출 페이지에서 해요.** 확장은 코드를 채워 주고 결과를 읽어 올 뿐, 비밀번호나 로그인 정보를 따로 다루지 않아요.
-  백준은 스크립트로 보내는 요청에 빈 응답을 주기 때문에, 확장이 몰래 대신 제출하는 방식은 쓰지 않아요.
-- 초안은 Chrome의 로컬 저장소에 저장돼요. 테마와 기본 코드 등 동기화 대상 설정은 Chrome 동기화 설정을 따라요. C++ 분석을 쓸 때는 열린 초안을 PC의 도우미를 통해 로컬 clangd에 전달해요.
-
-## 구조
-
-```
-manifest.json            확장 설정 (MV3)
-background.js            코드 실행(Wandbox API), 내 PC 도우미 연결, 제출 탭 열기·포커스·닫기
-content/split.js         분할 화면: 에디터, 실행 터미널, 제출 탭 열기, 채점 결과 표시
-content/split.css
-content/editor.js        초안·커서와 편집기 프레임 연결
-editor/                  확장 전용 Monaco 편집 화면
-content/submit.js        제출 페이지: 코드·언어 채우기 안내, 언어 목록 저장
-content/submit-main.js   제출 페이지(페이지 world): 백준 에디터에 코드 넣기
-content/status.js        채점 현황 페이지: A로 포커스 돌리기, 결과를 분할 화면으로 전달
-popup/                   설정 팝업
-host/                    내 PC 실행 도우미(cboj_host.py)와 설치·제거 스크립트
-shared/defaults.js       공통 기본 설정
-shared/boj.js            채점 결과 읽기
-vendor/monaco/           Monaco Editor·워커·글꼴·라이선스
-tools/monaco/            고정 버전 편집기 빌드 (npm ci, npm run build)
-docs/screenshots/        원작 화면 캡처
-docs/development/evidence/   P0–P4.2 검증 화면과 결과
-.github/workflows/       태그를 올리면 Releases에 ZIP 배포
-```
+프로젝트 명세와 개발 기록은 영어로 제공합니다. [프로젝트 명세](PROJECT_SPEC.md) · [로드맵](ROADMAP.md) · [통합 검증 기록](docs/development/P4.2.md) · [화면 촬영 기록](docs/development/README-localization.md)
