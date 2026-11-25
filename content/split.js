@@ -14,6 +14,7 @@
   const FALLBACK_LANGS = [
     { id: '84', name: 'C++17' }, { id: '95', name: 'C++20' }, { id: '88', name: 'C++14' },
     { id: '75', name: 'C11' }, { id: '0', name: 'C99' },
+    { id: '93', name: 'Java 11' },
     { id: '28', name: 'Python 3' }, { id: '73', name: 'PyPy3' },
   ];
   const TEMPLATES = globalThis.CBOJ_TEMPLATES;
@@ -22,6 +23,8 @@
 
   function langInfo(name) {
     if (/^(Python 3|PyPy3)/.test(name)) return { kind: 'python', family: 'py' };
+    const java = /^Java\b(?:\s+(\d{1,2})\b)?/.exec(name);
+    if (java) return { kind: 'java', family: 'java', ...(java[1] ? { release: Number(java[1]) } : {}) };
     let m = /^C\+\+(\d+)?/.exec(name);
     if (m) {
       const v = { 98: '98', '03': '03', 11: '11', 14: '14', 17: '17', 20: '20', 23: '23', 26: '2c' }[m[1] || '17'] || '17';
@@ -84,6 +87,7 @@
   let editor = null;
   let saveTimer = 0;
   let running = false;
+  let remoteActive = false;
   let draftReady = false;
   let runnerChoice = 'auto';
   let batchId = null;
@@ -97,6 +101,7 @@
   // ───────── 화면 만들기 ─────────
   function build() {
     const langSel = h('select', { class: 'cboj-lang', title: '제출 언어' });
+    const clock = new ProblemStopwatch(PID, h);
     const btnReset = h('button', { class: 'cboj-btn', title: '기본 템플릿으로 되돌리기', text: '↺', 'aria-label': '기본 템플릿으로 초기화' });
     const btnRun = h('button', { class: 'cboj-btn run', title: '전체 테스트 실행 (Ctrl+Enter)', text: '▶ 실행' });
     const btnSubmit = h('button', { class: 'cboj-btn submit', title: '백준에 제출 (Ctrl+Shift+Enter)', text: '제출' });
@@ -134,13 +139,13 @@
     const panel = h('aside', { id: 'cboj-panel', class: 'cboj', 'aria-label': '코드 작성' },
       resizerX,
       h('div', { class: 'cboj-toolbar' },
-        h('span', { class: 'cboj-title', text: PID + '번' }), langSel,
+        h('span', { class: 'cboj-title', text: PID + '번' }), langSel, clock.element,
         h('span', { class: 'cboj-spacer' }), btnReset, btnRun, btnSubmit, focus, btnClose),
       editorSlot, resizerY, bottom);
     document.body.appendChild(panel);
 
     status.before(where);
-    ui = { panel, langSel, bottom, card, termOut, termIn, status, tabResult, tabTerm, paneResult, paneTerm, btnRun, btnSubmit, btnCustom, where, cases, paneProblems, tabProblems, tabCases };
+    ui = { panel, langSel, clock, bottom, card, termOut, termIn, status, tabResult, tabTerm, paneResult, paneTerm, btnRun, btnSubmit, btnCustom, where, cases, paneProblems, tabProblems, tabCases };
 
     editor = new globalThis.CbojWorkspaceEditor(editorSlot, {
       diagnostics: items => renderProblems(items),
@@ -181,7 +186,7 @@
       await setTemplate();
       await saveDraft(false);
     });
-    btnRun.addEventListener('click', e => { if (e.isTrusted) batchId !== null ? stopBatch() : runSamples(); });
+    btnRun.addEventListener('click', e => { if (e.isTrusted) batchId !== null || remoteActive ? stopBatch() : runSamples(); });
     btnSubmit.addEventListener('click', e => { if (e.isTrusted) submit(); });
     btnClose.addEventListener('click', () => close());
     btnCustom.addEventListener('click', e => { if (e.isTrusted) runCustom(); });
@@ -347,7 +352,8 @@
     return h('div', { class: 'tl ' + kind, text });
   }
   function diagnosticOrigin() {
-    return { generation: editor.generation, revision: editor.revision, file: currentInfo().kind === 'cpp' ? 'main.cpp' : 'main.c' };
+    const files = { cpp: 'main.cpp', c: 'main.c', java: 'Main.java', python: 'main.py' };
+    return { generation: editor.generation, revision: editor.revision, file: files[currentInfo().kind] };
   }
   function block(title, body, kind = '', origin) {
     const pre = h('pre', { class: 'tb ' + kind, text: body === '' ? '(비어 있음)' : body });
@@ -374,6 +380,7 @@
   function commandLine(res, info) {
     if (!res.compiler) return '$ run';
     if (info.kind === 'python') return `$ ${res.compiler} main.py`;
+    if (info.kind === 'java') return `$ ${res.compiler} Main.java`;
     return `$ ${res.compiler} ${(res.options || []).join(' ')} main.${info.kind === 'c' ? 'c' : 'cpp'}`;
   }
 
@@ -476,7 +483,9 @@
   function localReady() { return Boolean(selectedCompiler()); }
   function nativeOptions() {
     if (runner.info?.protocol !== 2) return {};
-    return { protocol: 2, compiler: selectedCompiler() === 'msvc' ? 'msvc' : 'gcc' };
+    if (!['c', 'cpp'].includes(currentInfo().kind)) return { protocol: 2 };
+    return { protocol: 2, compiler: selectedCompiler() === 'msvc' ? 'msvc' : 'gcc',
+      ...(runner.info.stackSizeMiB === true ? { stackSizeMiB: settings.stackSizeMiB } : {}) };
   }
   async function executionPlace(epoch) {
     if (epoch !== runEpoch) return 'cancel';
@@ -491,9 +500,17 @@
   }
   function stopBatch() {
     batchStopped = true;
+    if (remoteActive) ext.runtime.sendMessage({ type: 'cboj:cancel-remote' }).catch(() => {});
     if (batchId !== null) {
       try { runner.port?.postMessage({ type: 'kill', protocol: 2, id: batchId }); } catch { /* disconnected */ }
     }
+  }
+
+  function showRemoteRun(active) {
+    remoteActive = active;
+    ui.btnRun.disabled = false;
+    ui.btnRun.textContent = active ? '■ 중지' : '▶ 실행';
+    ui.btnRun.classList.toggle('stop', active);
   }
 
   function hostRequest(msg, endType) {
@@ -526,12 +543,14 @@
       text = '실행 위치 확인 중…'; cls = ''; title = '';
     } else if (localReady()) {
       const compiler = selectedCompiler();
-      const tool = compiler === 'msvc' ? 'MSVC x64 ' + runner.info.msvc : (kind === 'python' ? 'Python ' + runner.info.python : runner.info[kind === 'c' ? 'gcc' : 'gpp']);
+      const tool = { msvc: 'MSVC x64 ' + runner.info.msvc, python: 'Python ' + runner.info.python,
+        javac: runner.info.javac, gcc: runner.info.gcc, 'g++': runner.info.gpp }[compiler];
       text = '● 내 PC · ' + (compiler === 'msvc' ? 'MSVC' : compiler); cls = 'local';
       title = `내 PC에서 실행해요 (${tool}). 아래 칸에서 터미널처럼 입력을 주고받을 수 있어요.`;
       if (runner.info.protocol !== 2) title += ' 이전 도우미예요. MSVC, 캐시, 터미널 시간 제한은 host/install.bat로 업데이트해 주세요.';
+      if (['c', 'cpp'].includes(kind) && runner.info.stackSizeMiB === undefined) title += ' 스택 설정은 host/install.bat로 도우미를 업데이트하면 적용돼요.';
     } else if (runner.state === 'on') {
-      text = '● 컴파일러 없음'; cls = 'remote';
+      text = kind === 'java' ? '● JDK 없음' : '● 컴파일러 없음'; cls = 'remote';
       title = '선택한 컴파일러를 사용할 수 없어요. 팝업에서 환경을 바꾸거나 host/install.bat로 도우미를 업데이트해 주세요.';
     } else {
       text = '● Wandbox'; cls = 'remote';
@@ -588,7 +607,10 @@
       return out;
     }
     // Wandbox: 첫 입력으로 컴파일 에러를 확인하고 나머지는 동시에
+    if (epoch !== runEpoch || batchStopped) return { cancelled: true };
+    showRemoteRun(true);
     const first = await execute(inputs[0], info, code);
+    if (batchStopped || epoch !== runEpoch) return { cancelled: true };
     if (!first.ok) return { fatal: first.error };
     if (first.compileError && first.status !== '0' && /\berror\b/.test(first.compileError) && !first.stdout) {
       return { where: 'Wandbox', cmd: commandLine(first, info), compileError: first.compileError };
@@ -731,6 +753,7 @@
       }
     }
     running = false;
+    remoteActive = false;
     batchId = null;
     ui.btnRun.disabled = false;
     ui.btnRun.textContent = '▶ 실행';
@@ -767,7 +790,10 @@
       const stdin = ui.termIn.value;
       termAppend(line('info', `${currentLang().name} · 직접 입력으로 실행 중… [Wandbox]`));
       setStatus('실행 중…', 'busy');
+      showRemoteRun(true);
+      batchStopped = false;
       const res = await execute(stdin, info, editor.doc.code);
+      if (batchStopped || epoch !== runEpoch) { setStatus('중지됨'); return; }
       if (!showRunFailure(res)) {
         termAppend(line('cmd', commandLine(res, info)));
         termAppend(block('출력', res.stdout.replace(/\n$/, '')));
@@ -776,11 +802,12 @@
         termAppend(line(note ? 'err' : 'dim', note || '정상 종료'));
         setStatus(note ? '런타임 문제' : '실행 완료', note ? 'err' : '');
       } else {
-        setStatus('컴파일 에러', 'err');
+        setStatus(res.ok ? '컴파일 에러' : '실행 실패', 'err');
       }
     } catch (error) {
       setStatus(error.message || '실행 결과를 읽지 못했어요.', 'err');
     } finally {
+      if (remoteActive) showRemoteRun(false);
       running = false;
       ui.langSel.disabled = false;
     }
@@ -996,6 +1023,7 @@
       j.id ? h('span', { text: `#${j.id}` }) : null,
       j.memory ? h('span', { text: `메모리 ${j.memory}` }) : null,
       j.time ? h('span', { text: `시간 ${j.time}` }) : null,
+      Number.isFinite(j.solvedTime) ? h('span', { text: '풀이 시간 ' + stopwatch.format(j.solvedTime) }) : null,
       j.id ? h('a', { href: `/source/${j.id}`, target: '_blank', text: '코드 보기' }) : null));
     setStatus(done ? j.text : '채점 중…', done ? (j.key === 'ac' ? 'ok' : 'err') : 'busy');
   }
@@ -1013,12 +1041,15 @@
 
   // 제출 페이지에서 본 언어 목록(사용자가 백준에서 고른 언어들)을 쓴다.
   function adoptLanguages(list) {
-    const found = (list || []).filter((l) => l && l.id !== '' && langInfo(l.name));
+    let found = (Array.isArray(list) ? list : []).filter(l => /^\d{1,8}$/.test(l?.id) && typeof l.name === 'string' && langInfo(l.name));
     if (!found.length) return;
-    const prevName = langs.length ? currentLang().name : null;
-    const order = (l) => ['cpp', 'c', 'py'].indexOf(langInfo(l.name).family);
+    const previous = currentLang();
+    // An open form can have a shorter preferred-language list. Keep the active
+    // document associated with its original family until the user switches.
+    if (langId && !found.some(l => l.name === previous.name)) found = [previous, ...found.filter(l => l.id !== previous.id)];
+    const order = (l) => ['cpp', 'c', 'java', 'py'].indexOf(langInfo(l.name).family);
     langs = found.sort((a, b) => order(a) - order(b));
-    const same = langs.find((l) => l.name === prevName) || langs.find((l) => l.id === langId) || langs[0];
+    const same = langs.find((l) => l.name === previous.name) || langs[0];
     langId = same.id;
     if (ui) renderLangs();
   }
@@ -1037,10 +1068,15 @@
     if (isOpen) editor.connect().catch(() => {});
     ui.panel.hidden = !isOpen;
     applyLayout();
-    if (saved.cbojLangs) adoptLanguages(saved.cbojLangs);
     const last = await store.get('sync', { lastLangId: null, lastLangName: null });
-    langId = (langs.find((l) => l.id === last.lastLangId) || langs.find((l) => l.name === last.lastLangName) || langs[0]).id;
+    if (/^\d{1,8}$/.test(last.lastLangId) && typeof last.lastLangName === 'string' && langInfo(last.lastLangName)) {
+      langs = [{ id: last.lastLangId, name: last.lastLangName }, ...langs.filter(l => l.id !== last.lastLangId)];
+      langId = last.lastLangId;
+    }
+    if (saved.cbojLangs) adoptLanguages(saved.cbojLangs);
+    langId = (langs.find(l => l.name === last.lastLangName) || langs.find(l => l.id === last.lastLangId) || langs[0]).id;
     renderLangs();
+    await ui.clock.request(settings.timerAutoStart ? 'auto' : 'read');
     await loadDraft();
     const session = await ext.runtime.sendMessage({ type: 'cboj:restore-submit' }).catch(() => null);
     if (!submitToken && session?.token) { submitToken = session.token; onJudge(session.judge); }
@@ -1053,6 +1089,7 @@
     await initializing;
     if (!isOpen) return;
     ui.panel.hidden = false;
+    ui.clock.show(true);
     applyLayout();
     toggleBtn.classList.add('active');
     try { await editor.resume(); }
@@ -1061,10 +1098,11 @@
   function close() {
     if (!isOpen) return;
     isOpen = false;
+    ui?.clock.show(false);
     runEpoch++;
     if (editor) editor.suspend().then(() => saveDraft(false)).catch(() => {});
     if (live) stopLive();
-    if (batchId !== null) stopBatch();
+    if (batchId !== null || remoteActive) stopBatch();
     document.documentElement.classList.remove('cboj-open');
     if (ui) ui.panel.hidden = true;
     toggleBtn.classList.remove('active');
@@ -1091,12 +1129,15 @@
   });
   addEventListener('resize', () => { if (isOpen) applyLayout(); });
   addEventListener('pagehide', () => {
+    ui?.clock.show(false);
     clearTimeout(saveTimer);
     // The frame owns the last keystroke and saves it during its own pagehide.
     // Let Chrome unload it along with the tab.
   });
   addEventListener('pageshow', async e => {
     if (!e.persisted || !editor) return;
+    ui.clock.show(isOpen);
+    ui.clock.request('read');
     editor.detach();
     if (isOpen) {
       try { await loadDraft(); if (isOpen) await editor.resume(); }
@@ -1136,6 +1177,7 @@
       if (area === 'local' && changes.workspaceSnippets) { snippets = changes.workspaceSnippets.newValue || {}; applySettings(settings); }
       if (area === 'local' && changes.runnerChoice) {
         runEpoch++;
+        if (remoteActive) stopBatch();
         runnerChoice = changes.runnerChoice.newValue || 'auto';
         renderRunner();
       }

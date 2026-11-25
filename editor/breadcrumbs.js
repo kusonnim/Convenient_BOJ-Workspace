@@ -1,4 +1,4 @@
-const files = { cpp: ['C++', 'main.cpp'], c: ['C', 'main.c'], python: ['Python', 'main.py'] };
+const files = { cpp: ['C++', 'main.cpp'], c: ['C', 'main.c'], java: ['Java', 'Main.java'], python: ['Python', 'main.py'] };
 const icons = { 3: 'namespace', 4: 'namespace', 5: 'class', 6: 'method', 7: 'property', 8: 'field',
   9: 'constructor', 10: 'enum', 11: 'interface', 12: 'method', 13: 'variable', 14: 'constant', 22: 'enum-member', 23: 'struct' };
 function icon(name) {

@@ -67,3 +67,9 @@ The extension retains its public key, BOJ content-script scope, native host name
 C++ hosts advertise bounded document-symbol and document-highlight operations through the existing analysis handshake. Formatting is an explicit local operation using clang-format. Locations from compiler output carry the source revision and compiler column units. The Problems panel uses the UTF-16 positions reported by clangd.
 
 Custom tests retain upstream’s per-problem record format. Drafts, snippets, tests and settings can be exported to local plaintext JSON. Restoration merges cases by ID, snippets by language and ID or prefix, and templates by language. Open drafts are protected. The backup excludes submission sessions and credentials. Power Mode defaults to off on fresh and upgraded profiles. [Final integration report](docs/development/P4.2.md) · [Installation](README.md#installation)
+
+## P5 upstream parity
+
+Support Java alongside C, C++ and Python throughout Monaco, problem drafts, templates, execution and official form prefilling. Use the installed JDK for local batch and terminal jobs and an explicitly selected Wandbox compiler for remote runs. Keep the upstream per-problem stopwatch and automatic-completion preference. Windows C/C++ builds use a configurable stack reserve with compiler-specific linker arguments.
+
+Package both a fixed-ID unpacked distribution with the Windows helper and a root-manifest Store ZIP. Keep the host origin allowlist and all MV3 permission and CSP boundaries. The owner's authorization covers the existing fork and two named branches. Store review and distribution require separate authority. [Upstream synchronization](docs/development/upstream-sync.md) · [P5 verification](docs/development/P5.md)

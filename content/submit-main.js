@@ -8,29 +8,33 @@
   window.addEventListener('message', (e) => {
     if (e.source !== window || e.origin !== location.origin) return;
     const d = e.data;
-    if (!d || d.cboj !== 'fill') return;
+    if (!d || d.cboj !== 'fill' || typeof d.code !== 'string' || !/^\d{1,8}$/.test(d.langId)
+        || typeof d.langName !== 'string' || !['default', 'open', 'close', 'onlyaccepted'].includes(d.codeOpen)) return;
     const res = { cboj: 'filled', ok: false, langOk: false };
     try {
+      const S = CBOJ_SUBMIT_SELECTORS, form = document.querySelector(S.form) || document;
       // 언어를 먼저 바꾼다(언어를 바꾸면 백준이 에디터 내용을 바꿀 수 있어서).
-      const sel = document.querySelector('select[name="language"]');
-      if (sel && [...sel.options].some((o) => o.value === String(d.langId))) {
-        if (sel.value !== String(d.langId)) {
-          sel.value = String(d.langId);
+      const sel = form.querySelector(S.language);
+      const matches = sel ? [...sel.options].filter(o => o.value && (!d.langName || o.textContent.trim() === d.langName)) : [];
+      const option = matches.find(o => o.value === String(d.langId)) || (d.langName && matches.length === 1 && matches[0]);
+      if (option) {
+        if (sel.value !== option.value) {
+          sel.value = option.value;
           if (window.jQuery) window.jQuery(sel).trigger('chosen:updated').trigger('change');
           else sel.dispatchEvent(new Event('change', { bubbles: true }));
         }
         res.langOk = true;
       }
       if (d.codeOpen && d.codeOpen !== 'default') {
-        const r = document.querySelector(`input[name="code_open"][value="${d.codeOpen}"]`);
+        const r = [...form.querySelectorAll(S.codeOpen)].find(input => input.value === d.codeOpen);
         if (r) r.checked = true;
       }
-      const cmEl = document.querySelector('.CodeMirror');
+      const cmEl = form.querySelector(S.editor);
       if (cmEl && cmEl.CodeMirror) {
         cmEl.CodeMirror.setValue(d.code);
         res.ok = true;
       } else {
-        const ta = document.querySelector('textarea[name="source"]');
+        const ta = form.querySelector(S.source);
         if (ta) { ta.value = d.code; res.ok = true; }
       }
     } catch (err) {

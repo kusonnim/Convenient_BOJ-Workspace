@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+import zipfile
 from collections import OrderedDict
 
 from process_tree import Control, NO_WINDOW, WINDOWS, execute
@@ -58,17 +59,46 @@ def find_tool(name):
     return shutil.which(name, path=SEARCH_PATH)
 
 
-def tool_version(path):
+def tool_version(path, option='--version'):
     if not path:
         return None
     try:
-        r = subprocess.run([path, '--version'], capture_output=True, timeout=10, creationflags=NO_WINDOW)
+        r = subprocess.run([path, option], capture_output=True, timeout=10, creationflags=NO_WINDOW)
+        if r.returncode:
+            return None
         return (r.stdout or r.stderr).decode('utf-8', 'replace').splitlines()[0].strip()
     except Exception:  # noqa: BLE001
         return None
 
 
 TOOLS = {'gcc': find_tool('gcc'), 'g++': find_tool('g++')}
+
+
+def discover_jdk():
+    """Use the compiler and launcher from one installation, including a pre-existing JAVA_HOME."""
+    bins = []
+    if os.environ.get('JAVA_HOME'):
+        bins.append(Path(os.environ['JAVA_HOME']) / 'bin')
+    found = find_tool('javac')
+    if found:
+        path_bin = Path(found).resolve().parent
+        if (path_bin.parent / 'release').is_file() or not WINDOWS:
+            bins.append(path_bin)
+    if WINDOWS:
+        base = Path(os.environ['ProgramFiles'])
+        for root in (base / 'Eclipse Adoptium', base / 'Microsoft', base / 'Java', base / 'Zulu',
+                     Path(os.environ.get('LOCALAPPDATA', '')) / 'Programs'):
+            bins.extend(sorted(root.glob('*jdk*/bin'), reverse=True))
+    if found:
+        bins.append(path_bin)  # e.g. Oracle's Windows launcher directory
+    for directory in dict.fromkeys(bins):
+        javac = directory / ('javac.exe' if WINDOWS else 'javac')
+        java = directory / ('java.exe' if WINDOWS else 'java')
+        if javac.is_file() and java.is_file():
+            version = tool_version(javac, '-version')
+            if version and tool_version(java, '-version'):
+                return javac, java, version
+    return None
 
 
 def child_env():
@@ -188,8 +218,8 @@ def diagnostics(data, work):
     return output.replace(str(work) + os.sep, '').replace(str(work).replace('\\', '/') + '/', '').strip()
 
 
-def compile_step(tool, args, work, env, control, shown):
-    result = execute([tool, *args], work, env, control, timeout=60, limit=32 * 1024)
+def compile_step(tool, args, work, env, control, shown, timeout=60):
+    result = execute([tool, *args], work, env, control, timeout=timeout, limit=32 * 1024)
     if result['killed']:
         raise BuildError('cancelled', '컴파일을 중지했어요.', shown)
     if result['timeout'] or result['overLimit']:
@@ -204,20 +234,82 @@ class Toolchains:
     def __init__(self):
         reclaim_abandoned()
         self.msvc = discover_msvc()
+        self.jdk = discover_jdk()
         self.gcc_versions = {name: tool_version(path) for name, path in TOOLS.items()}
         self.env = child_env()
         self.cache = OrderedDict()
         self.cache_bytes = 0
 
     def info(self):
-        return dict(type='info', version='2.0.0', protocol=2, python=sys.version.split()[0],
+        return dict(type='info', version='2.1.0', protocol=2, python=sys.version.split()[0],
+                    javac=self.jdk[2] if self.jdk else None, stackSizeMiB=WINDOWS,
                     gcc=self.gcc_versions['gcc'], gpp=self.gcc_versions['g++'],
                     msvc=self.msvc[2] if self.msvc else None, msvcStandards=['c++17', 'c++20'] if self.msvc else [])
+
+    def cached(self, key, artifact):
+        entry = self.cache.pop(key, None)
+        if not entry:
+            return None
+        image, warnings, headers = entry
+        try:
+            fresh = all(stamp(p) == saved for p, saved in headers.items())
+        except OSError:
+            fresh = False
+        if not fresh:
+            self.cache_bytes -= len(image)
+            return None
+        self.cache[key] = entry
+        artifact.write_bytes(image)
+        return warnings
+
+    def remember(self, key, artifact, warnings, headers):
+        if headers is None or artifact.stat().st_size > 8 * 1024 * 1024:
+            return
+        image = artifact.read_bytes()
+        self.cache[key] = (image, warnings, headers)
+        self.cache_bytes += len(image)
+        while len(self.cache) > 8 or self.cache_bytes > 32 * 1024 * 1024:
+            self.cache_bytes -= len(self.cache.popitem(last=False)[1][0])
+
+    def prepare_java(self, msg, work, control):
+        if not self.jdk:
+            raise BuildError('nocompiler', 'Java JDK의 javac와 java를 찾지 못했어요. JAVA_HOME 또는 PATH를 확인해 주세요.')
+        javac, java, version = self.jdk
+        env = {k: v for k, v in self.env.items() if k.upper() not in
+               ('CLASSPATH', 'JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS', 'JDK_JAVAC_OPTIONS')}
+        # System.out/err can use the Windows console code page even for pipes.
+        # JDK 19+ uses stdout.encoding; older releases use sun.stdout.encoding.
+        encoding = ['-Dfile.encoding=UTF-8', '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8',
+                    '-Dsun.stdout.encoding=UTF-8', '-Dsun.stderr.encoding=UTF-8']
+        flags = ['-encoding', 'UTF-8', '-proc:none', '-classpath', '.', '-d', '.', '-J-Xss512m']
+        compiler_options = ['-J' + option for option in encoding]
+        release = msg['lang'].get('release')
+        if release and not (version.startswith('javac 1.8.') and release == 8):
+            flags.extend(['--release', str(release)])
+        shown = 'javac ' + ' '.join([*flags, 'Main.java'])
+        jar = work / 'program.jar'
+        args = [str(java), '-Xss512m', *encoding, '-XX:+UseSerialGC', '-DONLINE_JUDGE=1', '-DBOJ=1',
+                '-cp', str(jar), 'Main']
+        identity = [(str(p), stamp(p)) for p in (javac, java, javac.parent.parent / 'lib/modules',
+                    javac.parent.parent / 'lib/ct.sym') if p.is_file()]
+        key = hashlib.sha256(json.dumps(['java', msg['code'], identity, version, flags, sorted(env.items())]).encode()).digest()
+        warnings = self.cached(key, jar)
+        if warnings is not None:
+            return args, env, dict(cmd=shown, compiler='javac', cache='hit', warnings=warnings)
+        (work / 'Main.java').write_bytes(msg['code'].encode('utf-8'))
+        warnings = compile_step(str(javac), [*compiler_options, *flags, 'Main.java'], work, env, control, shown, timeout=90)
+        with zipfile.ZipFile(jar, 'w') as archive:
+            for file in work.rglob('*.class'):
+                archive.write(file, file.relative_to(work))
+        self.remember(key, jar, warnings, {})
+        return args, env, dict(cmd=shown, compiler='javac', cache='miss', warnings=warnings)
 
     def prepare(self, msg, work, control):
         kind = msg['lang']['kind']
         code = msg['code']
         interactive = msg['type'] == 'run'
+        if kind == 'java':
+            return self.prepare_java(msg, work, control)
         if kind == 'python':
             src = work / 'main.py'
             src.write_bytes(code.encode('utf-8'))
@@ -230,6 +322,7 @@ class Toolchains:
         src = 'main.c' if kind == 'c' else 'main.cpp'
         exe = work / ('main.exe' if WINDOWS else 'main')
         stub_args = []
+        stack_bytes = msg.get('stackSizeMiB', 256) * 1024 * 1024
         if msvc:
             if not self.msvc:
                 raise BuildError('nocompiler', '사용 가능한 x64 MSVC를 찾지 못했어요. Visual Studio C++ 도구와 Windows SDK를 확인해 주세요.')
@@ -240,7 +333,9 @@ class Toolchains:
             flags = ['/nologo', '/EHsc', '/O2', '/utf-8', '/diagnostics:column', '/Zc:__cplusplus',
                      '/std:' + MS_STANDARDS[standard], '/DONLINE_JUDGE', '/DBOJ']
             args = [*flags, '/sourceDependencies', 'deps.json', src, '/Fe' + exe.name]
-            shown = 'cl ' + ' '.join([*flags, src])
+            link = ['/link', '/STACK:' + str(stack_bytes)]
+            args += link
+            shown = 'cl ' + ' '.join([*flags, src, *link])
             binaries = [tool, *(Path(tool).with_name(name) for name in ('c1xx.dll', 'c2.dll', 'link.exe'))]
         else:
             compiler = 'gcc' if kind == 'c' else 'g++'
@@ -262,26 +357,18 @@ class Toolchains:
             if kind == 'c':
                 args.append('-lm')
             if WINDOWS:
-                args.append('-static')
+                args.extend(['-static', '-Wl,--stack,' + str(stack_bytes)])
             shown = ' '.join([compiler, *flags, src])
+            if WINDOWS:
+                shown += ' ' + args[-1]
             binaries = [tool]
         identity = [(str(p), stamp(p)) for p in binaries]
         key = hashlib.sha256(json.dumps([code, kind, interactive, identity, version, args, stub_args, sorted(env.items())],
                                        ensure_ascii=False).encode('utf-8')).digest()
-        entry = self.cache.pop(key, None)
-        if entry:
-            image, warnings, headers = entry
-            self.cache_bytes -= len(image)
-            try:
-                fresh = all(stamp(p) == saved for p, saved in headers.items())
-            except OSError:
-                fresh = False
-            if fresh:
-                self.cache[key] = entry
-                self.cache_bytes += len(image)
-                exe.write_bytes(image)
-                exe.chmod(0o700)
-                return [str(exe)], env, dict(cmd=shown, compiler=compiler, cache='hit', warnings=warnings)
+        warnings = self.cached(key, exe)
+        if warnings is not None:
+            exe.chmod(0o700)
+            return [str(exe)], env, dict(cmd=shown, compiler=compiler, cache='hit', warnings=warnings)
         (work / src).write_bytes(code.encode('utf-8'))
         if stub_args:
             (work / 'cboj_unbuf.c').write_text(UNBUF_STUB, encoding='utf-8')
@@ -301,10 +388,6 @@ class Toolchains:
         # cl prints the source name even when it has emitted no diagnostics.
         warnings = '\n'.join(line for line in output.splitlines() if line.strip() != src)
         headers = dependencies(work, bool(msvc))
-        if headers is not None and exe.stat().st_size <= 8 * 1024 * 1024 and not re.search(r'__(?:DATE|TIME|TIMESTAMP)__', code):
-            image = exe.read_bytes()
-            self.cache[key] = (image, warnings, headers)
-            self.cache_bytes += len(image)
-            while len(self.cache) > 8 or self.cache_bytes > 32 * 1024 * 1024:
-                self.cache_bytes -= len(self.cache.popitem(last=False)[1][0])
+        if not re.search(r'__(?:DATE|TIME|TIMESTAMP)__', code):
+            self.remember(key, exe, warnings, headers)
         return [str(exe)], env, dict(cmd=shown, compiler=compiler, cache='miss', warnings=warnings)

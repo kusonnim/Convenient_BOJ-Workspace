@@ -23,6 +23,11 @@ const submissionSessions = (() => {
     const owner = await get(key);
     if (owner?.token !== s.token) return;
     const judge = { ...event, token: s.token };
+    if (event.stage === 'done' && event.key === 'ac') {
+      // A full local storage area must not prevent delivering the judge result.
+      const timer = await stopwatch.change(s.pid, 'solve').catch(() => null);
+      if (timer?.solved != null) judge.solvedTime = timer.solved;
+    }
     await storage.set({ [key]: { ...owner, judge } });
     await chrome.tabs.sendMessage(s.originTabId, { type: 'cboj:judge', judge }, { frameId: 0 }).catch(() => {});
   }

@@ -12,6 +12,7 @@ The reports follow the development history from the original audit to the offici
 | [P4](docs/development/P4.md) | Test cases, snippets, optional Power Mode, workspace UI, submission isolation and final verification | Extra high |
 | [P4.1](docs/development/P4.1.md) | Editor navigation, themes, local formatting and backup | High |
 | [P4.2](docs/development/P4.2.md) | Final integration, compatibility, performance, recovery and fork publication | Extra high |
+| [P5](docs/development/P5.md) | Upstream feature parity, Windows toolchains, extension packaging and repeatable synchronization | High |
 
 ## Mandatory BOJ account safety at every gate
 

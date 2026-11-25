@@ -3,3 +3,4 @@
 # Preserve the exact bytes produced by the pinned build and its upstream licenses.
 vendor/monaco/* -text -whitespace
 vendor/themes/* text eol=lf
+vendor/boj/* text eol=lf

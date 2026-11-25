@@ -62,19 +62,22 @@
     <div class="row"><label for="edit-size">글자 크기 (px)</label><input id="edit-size" type="number" min="10" max="32" data-polish="editorFontSize"></div>
     <div class="row"><label for="edit-height">줄 높이 (px)</label><input id="edit-height" type="number" min="12" max="56" data-polish="editorLineHeight"></div>
     <label class="toggle"><span>자동 줄 바꿈 · Alt+Z</span><input type="checkbox" data-key="editorWrap"><i></i></label>
+    <label class="toggle"><span>입력할 때 자동완성 표시</span><input type="checkbox" data-key="autocomplete"><i></i></label>
+    <label class="toggle"><span>처음 펼칠 때 풀이 타이머 시작</span><input type="checkbox" data-key="timerAutoStart"><i></i></label>
     <label class="toggle"><span>고정 스크롤</span><input type="checkbox" data-key="editorSticky"><i></i></label>
     <label class="toggle"><span>괄호 색 및 가이드</span><input type="checkbox" data-key="editorBrackets"><i></i></label>
     <label class="toggle"><span>같은 기호 강조</span><input type="checkbox" data-key="editorOccurrences"><i></i></label>
     <label class="toggle"><span>기호 탐색 경로</span><input type="checkbox" data-key="editorBreadcrumbs"><i></i></label>
     <div class="row"><label for="sample-limit">테스트당 제한 (초)</label><input id="sample-limit" type="number" min="1" max="300" data-polish="sampleTimeLimit"></div>
     <div class="row"><label for="term-limit">터미널 제한 (초)</label><input id="term-limit" type="number" min="1" max="300" data-polish="terminalTimeLimit"></div>
+    <div class="row"><label for="cpp-stack">Windows C/C++ 스택 (MiB)</label><input id="cpp-stack" type="number" min="1" max="512" data-polish="stackSizeMiB"></div>
     <p><a href="https://clangd.llvm.org/installation" target="_blank" rel="noopener noreferrer">clangd 설치 안내 ↗</a></p>
   </details>
   <section class="card tpl">
     <div class="row">
       <h2>기본 코드</h2>
       <div class="seg" id="tplLang">
-        <button data-lang="cpp">C++</button><button data-lang="c">C</button><button data-lang="py">Python</button>
+        <button data-lang="cpp">C++</button><button data-lang="c">C</button><button data-lang="java">Java</button><button data-lang="py">Python</button>
       </div>
     </div>
     <textarea id="tplText" spellcheck="false" placeholder="(비어 있음: 빈 화면에서 시작해요)"></textarea>
@@ -87,7 +90,7 @@
   </section>
 
   <details class="card tpl" id="snippet-settings"><summary>사용자 스니펫</summary>
-    <div class="row"><select id="snippet-lang" aria-label="스니펫 언어"><option value="cpp">C++</option><option value="c">C</option><option value="py">Python</option></select>
+    <div class="row"><select id="snippet-lang" aria-label="스니펫 언어"><option value="cpp">C++</option><option value="c">C</option><option value="java">Java</option><option value="py">Python</option></select>
     <select id="snippet-list" aria-label="저장된 스니펫"><option value="">새 스니펫</option></select></div>
     <input id="snippet-prefix" aria-label="스니펫 접두어" placeholder="접두어" maxlength="48">
     <textarea id="snippet-body" aria-label="스니펫 본문" spellcheck="false" placeholder="${1:값} · $0"></textarea>
@@ -121,7 +124,7 @@
       <dt>Ctrl + S</dt><dd>코드 저장</dd>
     </dl>
   </section>
-  <p class="note">C는 GCC, Python은 로컬 Python으로 실행해요. MSVC는 C++17/20을 지원해요. 로컬 실행 시간은 백준 채점 시간과 다를 수 있어요.</p>
+  <p class="note">C는 GCC, Java는 JDK, Python은 로컬 Python으로 실행해요. MSVC는 C++17/20을 지원해요. 로컬 실행 시간은 백준 채점 시간과 다를 수 있어요.</p>
 
   <script src="../vendor/themes/palettes.js"></script>
   <script src="../shared/editor-settings.js"></script>
@@ -129,6 +132,7 @@
   <script src="polish.js"></script>
   <script src="popup.js"></script>
   <script src="snippets.js"></script>
+  <script src="../shared/stopwatch.js"></script>
   <script src="backup.js"></script>
 </body>
 </html>

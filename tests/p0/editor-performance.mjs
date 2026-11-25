@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const phase = process.argv[2];
-if (!['p1', 'p2', 'p3', 'p4', 'p42'].includes(phase)) throw Error('Use p1, p2, p3, p4 or p42 and optionally the unpacked extension path');
+if (!['p1', 'p2', 'p3', 'p4', 'p42', 'p5'].includes(phase)) throw Error('Use p1, p2, p3, p4, p42 or p5 and optionally the unpacked extension path');
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(process.argv[3] || path.join(here, '../..'));
 const samples = [];
@@ -24,7 +24,7 @@ for (let trial = 0; trial < 3; trial++) {
     if (loaded.id !== id) throw Error('Extension ID mismatch');
     const sw = context.serviceWorkers().find(w => w.url().endsWith('/background.js')) || await context.waitForEvent('serviceworker');
     await sw.evaluate(async phase => {
-      if (['p3','p4','p42'].includes(phase)) await chrome.storage.local.set({ runnerChoice: 'wandbox' });
+      if (['p3','p4','p42','p5'].includes(phase)) await chrome.storage.local.set({ runnerChoice: 'wandbox' });
       else chrome.runtime.connectNative = () => { throw Error('Offline timing fixture'); };
       const code = Array.from({ length: 400 }, (_, i) => 'int sample_' + i + ' = ' + i + ';').join('\n');
       await chrome.storage.local.set({ 'draft:1000:cpp': { code, cursor: { line: 0, ch: 0 } } });
@@ -49,7 +49,7 @@ for (let trial = 0; trial < 3; trial++) {
       const readyMs = Math.round(performance.now() - start);
       const frameSession = frame ? await context.newCDPSession(frame) : null;
       opens.push({ readyMs, tabHeapKiB: await heap(tab), frameHeapKiB: frameSession ? await heap(frameSession) : null });
-      if (['p3','p4','p42'].includes(phase)) {
+      if (['p3','p4','p42','p5'].includes(phase)) {
         await frame.waitForFunction(() => document.querySelector('#analysis-status')?.textContent.includes('clangd · MSVC'), null, { timeout: 55000 });
         opens.at(-1).analysisReadyMs = Math.round(performance.now() - start);
         opens.at(-1).frameWithAnalysisKiB = await heap(frameSession);

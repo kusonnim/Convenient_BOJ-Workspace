@@ -13,3 +13,11 @@
 #cboj-panel .cboj-resizer-x:hover, #cboj-panel .cboj-resizer-y:hover { background: var(--blue); }
 #cboj-panel .cboj-diagnostic { padding: 0; border: 0; background: transparent; color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 #cboj-panel :focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+#cboj-panel .cboj-clock { display: inline-flex; align-items: center; white-space: nowrap; }
+#cboj-panel .cboj-clock button { background: transparent; border: 0; color: var(--muted); padding: 2px 3px; font: 12px/22px Consolas, monospace; }
+#cboj-panel .cboj-clock button:hover { color: var(--ink); background: var(--bg2); }
+#cboj-panel .cboj-timer[aria-pressed=true], #cboj-panel .cboj-clock.solved .cboj-timer { color: var(--green); }
+#cboj-panel .cboj-timer-reset:disabled { visibility: hidden; }
+@container (max-width: 385px) {
+  #cboj-panel .cboj-toolbar { flex-wrap: wrap; }
+}

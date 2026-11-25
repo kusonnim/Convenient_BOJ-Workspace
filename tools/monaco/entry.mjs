@@ -26,3 +26,4 @@ import 'monaco-editor/esm/vs/editor/contrib/wordOperations/browser/wordOperation
 import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneCommandsQuickAccess.js';
 export * as cpp from 'monaco-editor/esm/vs/languages/definitions/cpp/cpp.js';
 export * as python from 'monaco-editor/esm/vs/languages/definitions/python/python.js';
+export * as java from 'monaco-editor/esm/vs/languages/definitions/java/java.js';

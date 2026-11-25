@@ -28,16 +28,17 @@ jobs:
 
       - name: ZIP 만들기
         run: |
-          mkdir -p out/Convenient_BOJ
-          cp -r manifest.json background.js content editor popup shared icons vendor host out/Convenient_BOJ/
-          (cd out && zip -qr ../Convenient_BOJ.zip Convenient_BOJ)
+          python3 tools/package.py --output .
           unzip -l Convenient_BOJ.zip
+          unzip -tq Convenient_BOJ-webstore.zip
 
       - name: 아티팩트로 올리기
         uses: actions/upload-artifact@v4
         with:
           name: Convenient_BOJ
-          path: Convenient_BOJ.zip
+          path: |
+            Convenient_BOJ.zip
+            Convenient_BOJ-webstore.zip
 
       - name: Releases에 올리기
         if: startsWith(github.ref, 'refs/tags/')

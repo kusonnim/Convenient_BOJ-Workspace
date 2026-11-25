@@ -1,5 +1,5 @@
 # Run a version-sensitive Chrome suite with a private native name and a disposable profile.
-param([ValidateSet('p0','p1','p2','p3','p4','polish','ime','timing','legacy')][string]$Suite = 'polish',
+param([ValidateSet('p0','p1','p2','p3','p4','p5','performance','polish','ime','timing','legacy')][string]$Suite = 'polish',
       [string]$Baseline, [string]$Filter, [switch]$Offline)
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
@@ -72,9 +72,10 @@ try {
     Push-Location $PSScriptRoot
     try {
         if ($Suite -eq 'ime') { & node windows-ime.mjs $stage }
+        elseif ($Suite -eq 'performance') { & node editor-performance.mjs p5 $stage }
         else {
             $configs = @{ p0='playwright.config.mjs'; p1='playwright.native.config.mjs'; p2='playwright.editor.config.mjs';
-                p3='playwright.clangd.config.mjs'; p4='playwright.p4.config.mjs'; polish='playwright.polish.config.mjs'; timing='playwright.polish.config.mjs'; legacy='playwright.polish.config.mjs' }
+                p3='playwright.clangd.config.mjs'; p4='playwright.p4.config.mjs'; p5='playwright.p5.config.mjs'; polish='playwright.polish.config.mjs'; timing='playwright.polish.config.mjs'; legacy='playwright.polish.config.mjs' }
             $params = @('node_modules/@playwright/test/cli.js','test','--config',$configs[$Suite],"--output=measurements/$Suite-$runId",'--reporter=list')
             if ($Suite -eq 'legacy') { $params += @('--grep','prior host') }
             if ($Suite -eq 'timing') { $params += @('--grep','startup and typing') }

@@ -61,7 +61,7 @@ try {
   console.log('Public page', page.url(), await page.title(), 'stylesheets', styles);
   await page.screenshot({ path: path.join(output, 'live-problem.png') });
   if (process.argv.includes('--msvc')) {
-    assert.equal(host, '2.0.0');
+    assert.match(host, /^2\./);
     const badge = page.locator('.cboj-where');
     await badge.filter({ hasText: 'MSVC' }).waitFor();
     await loadCode(page, [

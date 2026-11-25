@@ -1,4 +1,4 @@
-import { editor, languages, Uri, cpp, python } from '../vendor/monaco/editor.js';
+import { editor, languages, Uri, cpp, java, python } from '../vendor/monaco/editor.js';
 import { setSnippets, snippetSuggestions } from './snippets.js';
 import { PowerMode } from './power-mode.js';
 import { CppAnalysis } from './cpp-analysis.js';
@@ -13,7 +13,15 @@ globalThis.MonacoEnvironment = {
 };
 
 const cKeywords = 'auto break case char const continue default do double else enum extern float for goto if inline int long register restrict return short signed sizeof static struct switch typedef union unsigned void volatile while _Alignas _Alignof _Atomic _Bool _Complex _Generic _Imaginary _Noreturn _Static_assert _Thread_local'.split(' ');
-for (const [id, grammar] of [['cpp', cpp], ['c', cpp], ['python', python]]) {
+// Common library names from upstream's offline hints supplement Monaco's
+// grammar and document words. The existing clangd provider owns semantic C++.
+const libraryWords = {
+  c: 'printf scanf puts fgets getchar putchar malloc calloc realloc free memset memcpy strlen strcmp strcpy strcat qsort abs INT_MAX',
+  cpp: 'vector string map set unordered_map unordered_set multiset pair queue priority_queue stack deque array tuple bitset make_pair make_tuple push_back pop_back emplace_back push pop front back top size empty clear insert erase find count begin end rbegin rend sort stable_sort reverse lower_bound upper_bound binary_search unique next_permutation min max min_element max_element swap abs memset fill accumulate iota cin cout cerr endl getline ios sync_with_stdio tie greater less numeric_limits INT_MAX LLONG_MAX',
+  java: 'String System out println print printf BufferedReader InputStreamReader BufferedWriter OutputStreamWriter StringTokenizer StringBuilder IOException Integer parseInt Long parseLong ArrayList List LinkedList HashMap Map TreeMap HashSet Set TreeSet ArrayDeque Deque Queue PriorityQueue Arrays Collections Math max min abs append toString length size add get put remove contains containsKey isEmpty sort readLine nextToken hasMoreTokens Scanner nextInt nextLine',
+  python: 'print input range len int str float list dict set tuple map filter sorted reversed sum min max abs enumerate zip append extend pop insert remove sort join split strip rstrip readline sys stdin collections deque heapq heappush heappop defaultdict Counter itertools permutations combinations math sqrt inf setrecursionlimit',
+};
+for (const [id, grammar] of [['cpp', cpp], ['c', cpp], ['java', java], ['python', python]]) {
   languages.register({ id });
   languages.setMonarchTokensProvider(id, id === 'c' ? { ...grammar.language, keywords: cKeywords } : grammar.language);
   const configuration = { ...grammar.conf };
@@ -32,14 +40,17 @@ for (const [id, grammar] of [['cpp', cpp], ['c', cpp], ['python', python]]) {
     configuration.indentationRules = { increaseIndentPattern: /^.*(?:\{[^}"']*|\([^)"']*)$/, decreaseIndentPattern: /^\s*[})]/ };
   }
   languages.setLanguageConfiguration(id, configuration);
-  const words = id === 'c' ? cKeywords : grammar.language.keywords;
+  const keywords = new Set(id === 'c' ? cKeywords : grammar.language.keywords);
+  const words = [...new Set([...keywords, ...libraryWords[id].split(' ')])];
   languages.registerCompletionItemProvider(id, {
     provideCompletionItems(model, position) {
       const word = model.getWordUntilPosition(position);
       const range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber, startColumn: word.startColumn, endColumn: word.endColumn };
       const prefix = word.word.toLowerCase();
       const matches = words.filter(label => label.toLowerCase().startsWith(prefix));
-      return { suggestions: snippetSuggestions(model, position).concat(matches.map(label => ({ label, kind: languages.CompletionItemKind.Keyword, insertText: label, range }))) };
+      return { suggestions: snippetSuggestions(model, position).concat(matches.map(label => ({
+        label, kind: keywords.has(label) ? languages.CompletionItemKind.Keyword : languages.CompletionItemKind.Text, insertText: label, range,
+      }))) };
     },
   });
 }
@@ -53,7 +64,7 @@ export class MonacoWorkspace {
   open(doc, settings, resume) {
     this.suspend();
     this.doc = doc;
-    const name = { cpp: 'main.cpp', c: 'main.c', python: 'main.py' }[doc.language];
+    const name = { cpp: 'main.cpp', c: 'main.c', java: 'Main.java', python: 'main.py' }[doc.language];
     // A stable, virtual file URI gives Monaco model identity and bounded undo
     // restoration across collapse. It is never opened on the filesystem.
     const uri = Uri.from({ scheme: 'file', path: '/ConvenientBOJ/' + doc.problem + '/' + name });
@@ -97,7 +108,7 @@ export class MonacoWorkspace {
       this.view.onDidScrollChange(() => this.notify({ type: 'view', ...this.position() })),
     ];
     if (doc.language === 'cpp') this.analysis = new CppAnalysis(model, this.view, doc.standard, this.notify, () => this.crumbs?.refresh());
-    if (doc.language !== 'python') this.listeners.push(formatting(this.view, model));
+    if (['c', 'cpp'].includes(doc.language)) this.listeners.push(formatting(this.view, model));
     this.view.focus();
     return this.snapshot();
   }
@@ -121,6 +132,7 @@ export class MonacoWorkspace {
     this.settings = CBOJ_POLISH.read(settings);
     const s = this.settings;
     this.view.updateOptions({
+      quickSuggestions: s.autocomplete ? { other: true, comments: false, strings: false } : false, suggestOnTriggerCharacters: s.autocomplete,
       minimap: { enabled: settings.minimap }, fontFamily: s.editorFontFamily, fontSize: s.editorFontSize, lineHeight: s.editorLineHeight,
       stickyScroll: { enabled: s.editorSticky, maxLineCount: 3, defaultModel: 'indentationModel' },
       bracketPairColorization: { enabled: s.editorBrackets },
