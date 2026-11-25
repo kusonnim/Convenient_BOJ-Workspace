@@ -189,6 +189,10 @@ def main():
             msg = read_message()
             if msg is None:
                 break
+            if isinstance(msg, dict) and msg.get('type') in ('format-info', 'format') and tools is None and job is None:
+                from formatting import reply
+                send(reply(msg))
+                return
             if msg == {'type': 'analysis-info'} and tools is None and job is None:
                 send(dict(type='analysis-info', version=1))
                 continue

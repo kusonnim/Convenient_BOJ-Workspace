@@ -1,0 +1,17 @@
+body { background: var(--bg); color: var(--ink); }
+body [hidden] { display: none !important; }
+#breadcrumbs { display: flex; align-items: center; flex: 0 0 23px; gap: 2px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; white-space: nowrap; padding: 0 8px; border-bottom: 1px solid var(--line); background: var(--bg); }
+.crumb-language { color: var(--muted); font-size: 11px; padding-right: 5px; }
+#breadcrumbs button, #symbol-list button, #analysis-retry { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px 3px; color: inherit; background: transparent; font: inherit; cursor: pointer; }
+#breadcrumbs button:disabled { opacity: 1; cursor: default; }
+#breadcrumbs .codicon, #symbol-list .codicon { color: var(--blue); font-size: 14px; }
+#breadcrumbs .codicon-chevron-right { color: var(--muted); font-size: 12px; }
+#symbol-list { position: absolute; z-index: 15; top: 23px; min-width: min(190px, 92vw); max-width: 92vw; overflow: auto; max-height: 60vh; padding: 3px 0; background: var(--bg2); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 3px 9px #0004; }
+#symbol-list button { display: flex; width: 100%; padding: 4px 8px; text-align: left; white-space: nowrap; }
+#symbol-list button:focus, #symbol-list button:hover, #breadcrumbs button:not(:disabled):hover { background: color-mix(in srgb, var(--blue) 20%, var(--bg)); }
+#analysis-bar { display: flex; align-items: center; background: var(--bg2); color: var(--muted); }
+body #analysis-status, body[data-theme=dark] #analysis-status { flex: 1; border: 0; background: transparent; }
+#analysis-retry { color: var(--blue); margin-right: 5px; }
+#format-status { position: absolute; right: 8px; bottom: 24px; max-width: 85%; background: var(--bg2); color: var(--ink); border: 1px solid var(--line); padding: 4px 8px; }
+#header-preview, #header-preview header { color: var(--ink); background: var(--bg2); }
+.monaco-editor .wordHighlightText { border: 1px dashed var(--blue); background-color: color-mix(in srgb, var(--blue) 8%, transparent); }

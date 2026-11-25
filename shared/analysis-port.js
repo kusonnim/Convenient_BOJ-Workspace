@@ -8,12 +8,12 @@
   const integer = (n, min) => Number.isInteger(n) && n >= min && n < 0x80000000;
   function valid(m) {
     if (!m || !Object.hasOwn(fields, m.type)) return false;
-    const keys = fields[m.type];
+    const keys = m.type === 'analysis-request' && m.feature === 'documentSymbol' ? ['id', 'feature', 'version'] : fields[m.type];
     if (Object.keys(m).length !== keys.length + 1 || !keys.every(k => Object.hasOwn(m, k))) return false;
     if ('id' in m && !integer(m.id, 1) || 'version' in m && !integer(m.version, 1)) return false;
     if ('code' in m && bytes(m.code) > runnerLimit) return false;
     if ('standard' in m && (typeof m.standard !== 'string' || !/^(gnu|c)\+\+(98|03|11|14|17|20|23|2c)$/.test(m.standard))) return false;
-    return !('feature' in m) || ['completion', 'signatureHelp', 'hover', 'definition'].includes(m.feature)
+    return !('feature' in m) || m.feature === 'documentSymbol' || ['completion', 'signatureHelp', 'hover', 'definition', 'documentHighlight'].includes(m.feature)
       && m.position && Object.keys(m.position).length === 2 && integer(m.position.line, 0) && integer(m.position.character, 0);
   }
   chrome.runtime.onConnect.addListener(port => {

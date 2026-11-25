@@ -7,7 +7,7 @@
       this.changed = changed;
       this.action = action;
       this.error = error;
-      this.generation = this.sequence = 0;
+      this.generation = this.sequence = this.revision = 0;
       this.requests = new Map();
       this.settings = {};
       this.accept = port => {
@@ -65,6 +65,7 @@
         }
         if (typeof m.state?.code === 'string') {
           const { code, cursor, scroll } = m.state;
+          if (code !== this.doc.code) this.revision++;
           Object.assign(this.doc, { code, cursor, scroll });
         }
         if (m.type === 'edit' && Array.isArray(m.changes)) {
@@ -77,6 +78,7 @@
             }
             code = code.slice(0, c.at) + c.text + code.slice(c.at + c.count);
           }
+          this.revision++;
           this.doc.code = code;
         }
         if (m.type === 'view') Object.assign(this.doc, { cursor: m.cursor, scroll: m.scroll });

@@ -271,7 +271,7 @@ test.describe('installed runner and appearance', () => {
     await p.screenshot({ path: t.outputPath('monaco-msvc-light.png') });
     const popup = await lab.context.newPage();
     await popup.goto('chrome-extension://' + extensionId + '/popup/popup.html');
-    await popup.locator('[data-key="editorTheme"] [data-v="dark"]').click();
+    await popup.locator('select[data-key="editorTheme"]').selectOption('dark');
     await popup.locator('label.toggle').filter({ has: popup.locator('[data-key="editorMinimap"]') }).click();
     await expect.poll(() => stored(lab.worker, 'sync', 'editorMinimap')).toBe(true);
     await popup.close();
