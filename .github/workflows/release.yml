@@ -29,7 +29,7 @@ jobs:
       - name: ZIP 만들기
         run: |
           mkdir -p out/Convenient_BOJ
-          cp -r manifest.json background.js content popup shared icons vendor host out/Convenient_BOJ/
+          cp -r manifest.json background.js content editor popup shared icons vendor host out/Convenient_BOJ/
           (cd out && zip -qr ../Convenient_BOJ.zip Convenient_BOJ)
           unzip -l Convenient_BOJ.zip
 

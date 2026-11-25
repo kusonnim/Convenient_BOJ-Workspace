@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
-import { loadCode } from './chrome-fixture.mjs';
+import { focusedEditor, loadCode } from './chrome-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const output = fileURLToPath(new URL('test-results/', import.meta.url));
@@ -17,13 +17,16 @@ const context = await chromium.launchPersistentContext('', {
 });
 try {
   context.setDefaultTimeout(12_000);
+  const reads = { document: 0, stylesheet: 0, font: 0 };
   await context.route(/^https?:/, route => {
     const request = route.request();
     const url = new URL(request.url());
-    const problem = ['acmicpc.net', 'www.acmicpc.net'].includes(url.hostname) && url.pathname === '/problem/1000';
-    if (request.method() !== 'GET' || url.protocol !== 'https:' || (request.isNavigationRequest() && !problem)) {
-      return route.abort();
-    }
+    const kind = request.resourceType();
+    const problem = request.isNavigationRequest() && ['acmicpc.net', 'www.acmicpc.net'].includes(url.hostname)
+      && url.pathname === '/problem/1000' && !url.search;
+    if (request.method() !== 'GET' || url.protocol !== 'https:') return route.abort();
+    if (!(kind === 'document' && problem) && !['stylesheet', 'font'].includes(kind)) return route.abort();
+    reads[kind]++;
     return route.continue();
   });
   const cdp = await context.browser().newBrowserCDPSession();
@@ -39,7 +42,7 @@ try {
   });
   console.log('Chrome', context.browser().version(), 'registered native host:', host);
   const page = await context.newPage();
-  const response = await page.goto('https://www.acmicpc.net/problem/1000', { waitUntil: 'domcontentloaded', timeout: 30_000 });
+  const response = await page.goto('https://acmicpc.net/problem/1000', { waitUntil: 'domcontentloaded', timeout: 30_000 });
   assert.equal(response?.status(), 200);
   await page.locator('#sample-input-1').waitFor();
   await page.locator('#sample-output-1').waitFor();
@@ -49,7 +52,7 @@ try {
   await page.locator('.cboj-toggle').waitFor();
   await page.screenshot({ path: path.join(output, 'live-toggle.png') });
   await page.locator('.cboj-toggle').click();
-  await page.locator('.CodeMirror-focused').waitFor();
+  await focusedEditor(page);
   assert.equal(await statement.evaluate(el => el === document.querySelector('#problem_description')), true);
   assert.equal(await statement.innerHTML(), original);
   const styles = await page.locator('link[rel~="stylesheet"]').evaluateAll(links => links.map(link => ({
@@ -83,7 +86,7 @@ try {
     await page.screenshot({ path: path.join(output, 'live-msvc-pass.png') });
     await writeFile(path.join(output, 'live-msvc.json'), JSON.stringify({
       url: page.url(), status: response.status(), chrome: context.browser().version(), extensionId: id,
-      host, stylesheetsLoaded: styles.filter(s => s.loaded).length, statementPreserved: true, runs,
+      host, reads, stylesheetsLoaded: styles.filter(s => s.loaded).length, statementPreserved: true, runs,
     }, null, 2) + '\n');
   }
 } finally {

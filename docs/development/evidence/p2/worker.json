@@ -1,0 +1,14 @@
+{
+  "workerUrls": [
+    "chrome-extension://mabfdombglhmfnjklbnoglebinejifdi/vendor/monaco/editor.worker.js"
+  ],
+  "resources": [
+    "chrome-extension://mabfdombglhmfnjklbnoglebinejifdi/editor/frame.js",
+    "chrome-extension://mabfdombglhmfnjklbnoglebinejifdi/editor/monaco-adapter.js",
+    "chrome-extension://mabfdombglhmfnjklbnoglebinejifdi/vendor/monaco/editor.js",
+    "chrome-extension://mabfdombglhmfnjklbnoglebinejifdi/vendor/monaco/editor.css",
+    "chrome-extension://mabfdombglhmfnjklbnoglebinejifdi/editor/frame.css"
+  ],
+  "errors": [],
+  "workersAfterClose": []
+}

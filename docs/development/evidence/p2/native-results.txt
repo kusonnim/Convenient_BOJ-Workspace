@@ -1,0 +1,31 @@
+test_batch_timeout (__main__.NativeBaseline.test_batch_timeout) ... ok
+test_c_batch (__main__.NativeBaseline.test_c_batch) ... ok
+test_compiler_diagnostic (__main__.NativeBaseline.test_compiler_diagnostic) ... ok
+test_cpp_batch (__main__.NativeBaseline.test_cpp_batch) ... ok
+Job directories remaining after host disconnect: 0
+test_disconnect_during_interactive_run (__main__.NativeBaseline.test_disconnect_during_interactive_run) ... ok
+Host inventory {"protocol": 2, "type": "info", "version": "2.0.0", "python": "3.14.3", "gcc": "gcc.EXE (Rev4, Built by MSYS2 project) 16.2.0", "gpp": "g++.EXE (Rev4, Built by MSYS2 project) 16.2.0", "msvc": "195136260", "msvcStandards": ["c++17", "c++20"]}
+test_info (__main__.NativeBaseline.test_info) ... ok
+test_interactive_input_eof_and_separate_streams (__main__.NativeBaseline.test_interactive_input_eof_and_separate_streams) ... ok
+test_interactive_stop (__main__.NativeBaseline.test_interactive_stop) ... ok
+test_python_output_and_runtime_error (__main__.NativeBaseline.test_python_output_and_runtime_error) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 85.876s
+
+OK
+test_cache_evicts_the_oldest_build (__main__.CacheTests.test_cache_evicts_the_oldest_build) ... ok
+test_gnu_interactive_header_dependency (__main__.CacheTests.test_gnu_interactive_header_dependency) ... ok
+test_msvc_identity_and_dependencies (__main__.CacheTests.test_msvc_identity_and_dependencies) ... ok
+test_unavailable_msvc_and_unsupported_standard (__main__.CacheTests.test_unavailable_msvc_and_unsupported_standard) ... ok
+test_p0_host_accepts_capability_probe_and_legacy_gcc_job (__main__.LegacyHostTests.test_p0_host_accepts_capability_probe_and_legacy_gcc_job) ... ok
+test_descendant_exits_after_normal_parent_return (__main__.WireTests.test_descendant_exits_after_normal_parent_return) ... ok
+test_descendants_on_disconnect (__main__.WireTests.test_descendants_on_disconnect) ... ok
+test_forced_host_exit_and_scoped_reclamation (__main__.WireTests.test_forced_host_exit_and_scoped_reclamation) ... ok
+test_interactive_timeout_and_output_bound (__main__.WireTests.test_interactive_timeout_and_output_bound) ... ok
+test_invalid_and_duplicate_requests_leave_port_usable (__main__.WireTests.test_invalid_and_duplicate_requests_leave_port_usable) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 87.599s
+
+OK

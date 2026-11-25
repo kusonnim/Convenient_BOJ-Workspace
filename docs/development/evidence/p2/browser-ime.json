@@ -1,0 +1,35 @@
+{
+  "inputMethod": "EditContext",
+  "events": [
+    {
+      "type": "compositionstart",
+      "text": "ㅎ",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "ㅎ",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "한",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "한",
+      "trusted": true
+    },
+    {
+      "type": "compositionend",
+      "text": "한",
+      "trusted": true
+    }
+  ],
+  "line": "// 🙂한ab",
+  "saved": {
+    "ch": 6,
+    "line": 60
+  }
+}

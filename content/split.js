@@ -8,8 +8,7 @@
   const PID = pathMatch[1];
   const ext = globalThis.chrome;
   const DEFAULTS = globalThis.CBOJ_DEFAULTS;
-  const CM = globalThis.CodeMirror;
-  if (!ext || !ext.storage || !DEFAULTS || !CM) return;
+  if (!ext?.storage || !DEFAULTS || !globalThis.CbojWorkspaceEditor) return;
 
   // ───────── 언어 ─────────
   const FALLBACK_LANGS = [
@@ -22,18 +21,18 @@
   const expandTemplate = globalThis.cbojExpandTemplate;
 
   function langInfo(name) {
-    if (/^(Python 3|PyPy3)/.test(name)) return { kind: 'python', family: 'py', mode: 'text/x-python' };
+    if (/^(Python 3|PyPy3)/.test(name)) return { kind: 'python', family: 'py' };
     let m = /^C\+\+(\d+)?/.exec(name);
     if (m) {
       const v = { 98: '98', '03': '03', 11: '11', 14: '14', 17: '17', 20: '20', 23: '23', 26: '2c' }[m[1] || '17'] || '17';
       const clang = /Clang/i.test(name);
-      return { kind: 'cpp', family: 'cpp', clang, std: (clang ? 'c++' : 'gnu++') + v, mode: 'text/x-c++src' };
+      return { kind: 'cpp', family: 'cpp', clang, std: (clang ? 'c++' : 'gnu++') + v };
     }
     m = /^C(\d+|2x)?(?=$| )/.exec(name);
     if (m) {
       const v = { 90: '90', 99: '99', 11: '11', 17: '17', '2x': '2x', 23: '2x' }[m[1] || '11'] || '11';
       const clang = /Clang/i.test(name);
-      return { kind: 'c', family: 'c', clang, std: (clang ? 'c' : 'gnu') + v, mode: 'text/x-csrc' };
+      return { kind: 'c', family: 'c', clang, std: (clang ? 'c' : 'gnu') + v };
     }
     return null;
   }
@@ -82,7 +81,7 @@
   let langId = null;
   let me = ($('meta[name="username"]') || {}).content || '';
   let ui = null;
-  let cm = null;
+  let editor = null;
   let saveTimer = 0;
   let running = false;
   let draftReady = false;
@@ -101,7 +100,7 @@
     const btnRun = h('button', { class: 'cboj-btn run', title: '예제로 실행 (Ctrl+Enter)', text: '▶ 실행' });
     const btnSubmit = h('button', { class: 'cboj-btn submit', title: '백준에 제출 (Ctrl+Shift+Enter)', text: '제출' });
     const btnClose = h('button', { class: 'cboj-icon', title: '분할 화면 닫기', text: '✕' });
-    const editor = h('div', { class: 'cboj-editor' });
+    const editorSlot = h('div', { class: 'cboj-editor' });
 
     const tabResult = h('button', { class: 'cboj-tab active', 'data-tab': 'result', text: '정/오답 확인' });
     const tabTerm = h('button', { class: 'cboj-tab', 'data-tab': 'term', text: '터미널' });
@@ -130,64 +129,30 @@
       h('div', { class: 'cboj-toolbar' },
         h('span', { class: 'cboj-title', text: PID + '번' }), langSel,
         h('span', { class: 'cboj-spacer' }), btnReset, btnRun, btnSubmit, btnClose),
-      editor, resizerY, bottom);
+      editorSlot, resizerY, bottom);
     document.body.appendChild(panel);
 
     status.before(where);
-    ui = { panel, langSel, editor, bottom, card, termOut, termIn, status, tabResult, tabTerm, paneResult, paneTerm, btnRun, btnSubmit, btnCustom, where };
+    ui = { panel, langSel, bottom, card, termOut, termIn, status, tabResult, tabTerm, paneResult, paneTerm, btnRun, btnSubmit, btnCustom, where };
 
-    cm = CM(editor, {
-      value: '',
-      readOnly: true,
-      lineNumbers: true,
-      indentUnit: 4,
-      tabSize: 4,
-      indentWithTabs: useTabs(),
-      matchBrackets: true,
-      // 괄호 사이 엔터 처리는 smartEnter가 VS Code 방식으로 하므로 explode는 끈다
-      autoCloseBrackets: { pairs: '()[]{}\'\'""', explode: '' },
-      theme: settings.editorTheme === 'dark' ? 'cboj-dark' : 'cboj-light',
-      extraKeys: {
-        Tab: (c) => {
-          if (c.somethingSelected()) { c.indentSelection('add'); return; }
-          if (useTabs()) { c.replaceSelection('\t', 'end'); return; }
-          // 공백 모드: 다음 4칸 위치까지 공백을 채운다
-          const cur = c.getCursor();
-          const col = CM.countColumn(c.getLine(cur.line), cur.ch, 4);
-          c.replaceSelection(' '.repeat(4 - (col % 4)), 'end');
-        },
-        'Shift-Tab': (c) => c.indentSelection('subtract'),
-        Enter: (c) => smartEnter(c),
-        // 공백 모드에서 줄 앞 공백을 지울 때는 4칸 단위로 한 번에 지운다
-        Backspace: (c) => {
-          if (useTabs() || c.somethingSelected()) return CM.Pass;
-          const cur = c.getCursor();
-          const before = c.getLine(cur.line).slice(0, cur.ch);
-          if (!before || /[^ ]/.test(before)) return CM.Pass;
-          const n = before.length % 4 || 4;
-          c.replaceRange('', { line: cur.line, ch: cur.ch - n }, cur);
-          return undefined;
-        },
-        'Ctrl-Enter': () => runSamples(),
-        'Cmd-Enter': () => runSamples(),
-        'Shift-Ctrl-Enter': () => submit(),
-        'Shift-Cmd-Enter': () => submit(),
-        'Ctrl-S': () => { saveDraft(true); },
-        'Cmd-S': () => { saveDraft(true); },
+    editor = new globalThis.CbojWorkspaceEditor(editorSlot, {
+      changed() {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => saveDraft(false), 600);
       },
+      action(name) {
+        if (name === 'toggle') close();
+        if (name === 'run') runSamples();
+        if (name === 'submit') submit();
+        if (name === 'save') saveDraft(true);
+      },
+      error: message => setStatus(message, 'err'),
     });
-    cm.setSize('100%', '100%');
-    // 코드가 바뀌거나 커서만 옮겨도 잠시 뒤 저장한다 (다시 열면 마지막 작업 위치로)
-    const scheduleSave = () => {
-      clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => saveDraft(false), 600);
-    };
-    cm.on('change', scheduleSave);
-    cm.on('cursorActivity', scheduleSave);
 
     langSel.addEventListener('change', async () => {
       langSel.disabled = true;
-      cm.setOption('readOnly', true);
+      editor.lock();
+      await editor.flush();
       const saved = saveDraft(false);
       draftReady = false;
       if (live) await stopLive();
@@ -197,15 +162,18 @@
       await loadDraft();
       renderRunner();
     });
-    btnReset.addEventListener('click', () => {
+    btnReset.addEventListener('click', async (e) => {
+      if (!e.isTrusted) return;
       if (!draftReady) return;
-      if (cm.getValue().trim() && !confirm('작성한 코드를 지우고 기본 템플릿으로 되돌릴까요?')) return;
-      setTemplate();
+      await editor.flush();
+      if (editor.doc.code.trim() && !confirm('작성한 코드를 지우고 기본 템플릿으로 되돌릴까요?')) return;
+      await setTemplate();
+      await saveDraft(false);
     });
-    btnRun.addEventListener('click', () => batchId !== null ? stopBatch() : runSamples());
-    btnSubmit.addEventListener('click', () => submit());
+    btnRun.addEventListener('click', e => { if (e.isTrusted) batchId !== null ? stopBatch() : runSamples(); });
+    btnSubmit.addEventListener('click', e => { if (e.isTrusted) submit(); });
     btnClose.addEventListener('click', () => close());
-    btnCustom.addEventListener('click', () => runCustom());
+    btnCustom.addEventListener('click', e => { if (e.isTrusted) runCustom(); });
     btnClear.addEventListener('click', () => { termOut.textContent = ''; });
     termIn.addEventListener('keydown', onTermKey);
     where.addEventListener('click', () => {
@@ -243,12 +211,16 @@
       const up = () => {
         handle.removeEventListener('pointermove', move);
         handle.removeEventListener('pointerup', up);
+        handle.removeEventListener('lostpointercapture', up);
+        handle.removeEventListener('pointercancel', up);
         document.documentElement.classList.remove('cboj-dragging');
         store.set('local', { cbojLayout: layout });
-        cm && cm.refresh();
+        editor?.layout();
       };
       handle.addEventListener('pointermove', move);
       handle.addEventListener('pointerup', up);
+      handle.addEventListener('lostpointercapture', up);
+      handle.addEventListener('pointercancel', up);
     });
   }
 
@@ -276,91 +248,30 @@
 
   // ───────── 코드 저장 ─────────
   async function saveDraft(notify) {
-    if (!cm || !draftReady) return;
-    const info = currentInfo();
-    // 한 번 연 문제는 기본 코드와 똑같은 내용이어도 항상 저장한다.
-    // 그래서 $0 위치는 그 문제·언어를 '처음' 열 때와 [↺ 초기화] 때만 쓰인다.
-    const { line, ch } = cm.getCursor();
-    await store.set('local', { [draftKey(info.family)]: { code: cm.getValue(), cursor: { line, ch }, at: Date.now() } });
+    if (!editor?.doc || !draftReady) return;
+    const key = draftKey(currentInfo().family);
+    const generation = editor.generation;
+    if (notify) await editor.flush();
+    if (generation !== editor.generation) return;
+    await store.set('local', { [key]: { ...editor.snapshot(), at: Date.now() } });
     if (notify) setStatus('저장했어요', 'ok');
   }
   async function loadDraft() {
     draftReady = false;
     clearTimeout(saveTimer);
     ui.langSel.disabled = true;
-    cm.setOption('readOnly', true);
     const info = currentInfo();
-    cm.setOption('mode', info.mode);
     const key = draftKey(info.family);
-    const v = await store.get('local', { [key]: null });
-    const d = v[key];
-    if (d && typeof d.code === 'string') {
-      cm.setValue(d.code);
-      cm.clearHistory();
-      // 마지막으로 작업하던 자리로 커서를 돌려놓는다 (예전 저장본은 코드 끝으로).
-      const last = cm.lastLine();
-      if (d.cursor && d.cursor.line <= last) cm.setCursor(d.cursor);
-      else cm.setCursor(last, cm.getLine(last).length);
+    const saved = (await store.get('local', { [key]: null }))[key];
+    if (saved && typeof saved.code === 'string') {
+      await editor.setDocument({ problem: PID, language: info.kind, code: saved.code, cursor: saved.cursor, scroll: saved.scroll });
     } else {
       if (info.family === 'cpp' && typeof settings.templates?.cpp !== 'string' && runnerChoice === 'auto') await checkRunner();
-      setTemplate();
+      await setTemplate();
     }
     draftReady = true;
-    cm.setOption('readOnly', false);
     ui.langSel.disabled = false;
   }
-  // 엔터 자동 들여쓰기: VS Code의 언어별 규칙을 따른다.
-  // - C/C++ : 줄이 닫히지 않은 '{' 또는 '('로 끝나면 한 단계 들여쓰기, 그 밖에는 같은 깊이
-  //           (';'가 빠진 줄이나 'if (x)' 다음 줄도 같은 깊이)
-  // - Python: 'def/if/for/while/else…'로 시작해 ':'로 끝나거나, 열린 괄호로 끝나면 들여쓰기
-  //           'return/pass/break/continue/raise' 다음 줄은 한 단계 내어쓰기
-  // - 괄호 쌍 사이( {|}, (|), [|] )에서 누르면 가운데 줄을 만들고 닫는 괄호는 원래 깊이로
-  const VSC = {
-    cIncrease: /^.*\{[^}"']*$|^.*\([^)"']*$/,
-    pyIncrease: /^\s*(?:def|class|for|if|elif|else|while|try|with|finally|except|async|match|case)\b.*:\s*(#.*)?$/,
-    pyBracket: /[([{]\s*(#.*)?$/,
-    pyOutdent: /^\s*(?:pass|break|continue|raise\b.*|return\b.*)\s*(#.*)?$/,
-  };
-  const PAIRS = { '{': '}', '(': ')', '[': ']' };
-
-  function smartEnter(c) {
-    if (c.somethingSelected() || c.listSelections().length > 1) return CM.Pass;
-    const unit = useTabs() ? '\t' : '    ';
-    const cur = c.getCursor();
-    const text = c.getLine(cur.line);
-    const before = text.slice(0, cur.ch);
-    const after = text.slice(cur.ch);
-    const base = text.match(/^[ \t]*/)[0];
-    const py = currentInfo().family === 'py';
-    const beforeCode = py ? before : before.replace(/\/\/.*$/, '');
-
-    let indent = base;
-    if (py) {
-      if (VSC.pyIncrease.test(before) || VSC.pyBracket.test(before)) indent = base + unit;
-      else if (VSC.pyOutdent.test(before)) indent = outdent(base);
-    } else if (VSC.cIncrease.test(beforeCode)) {
-      indent = base + unit;
-    }
-
-    const rest = after.replace(/^[ \t]+/, '');
-    const open = before.trimEnd().slice(-1);
-    if (PAIRS[open] && rest.startsWith(PAIRS[open])) {
-      // 괄호 쌍 사이: 가운데 줄은 한 단계 안쪽, 닫는 괄호는 원래 깊이
-      c.replaceRange(`\n${base + unit}\n${base}`, cur, { line: cur.line, ch: cur.ch + (after.length - rest.length) });
-      c.setCursor({ line: cur.line + 1, ch: (base + unit).length });
-      return undefined;
-    }
-    c.replaceRange(`\n${indent}`, cur, { line: cur.line, ch: cur.ch + (after.length - rest.length) });
-    c.setCursor({ line: cur.line + 1, ch: indent.length });
-    return undefined;
-  }
-
-  function outdent(ws) {
-    if (ws.endsWith('\t')) return ws.slice(0, -1);
-    const m = ws.match(/ {1,4}$/);
-    return m ? ws.slice(0, -m[0].length) : ws;
-  }
-
   function templateFor(family) {
     // 팝업에서 바꾼 기본 코드가 있으면 그걸, 없으면 기본값을 쓴다.
     const custom = settings.templates && settings.templates[family];
@@ -374,11 +285,8 @@
   }
   function setTemplate() {
     const t = templateFor(currentInfo().family);
-    cm.setValue(t.code);
-    cm.clearHistory();
-    if (t.line != null) cm.setCursor({ line: t.line, ch: t.ch });
-    else cm.setCursor(cm.lastLine(), cm.getLine(cm.lastLine()).length);
-    cm.focus();
+    return editor.setDocument({ problem: PID, language: currentInfo().kind, code: t.code,
+      cursor: t.line == null ? null : { line: t.line, ch: t.ch } });
   }
 
   // ───────── 터미널 ─────────
@@ -581,8 +489,9 @@
 
   // ───────── 예제 실행 (입력을 미리 정해 두고 한꺼번에) ─────────
   async function runInputs(inputs, epoch) {
+    await editor.flush();
     const info = currentInfo();
-    const code = cm.getValue();
+    const code = editor.doc.code;
     const place = await executionPlace(epoch);
     if (place === 'cancel') return { cancelled: true };
     if (place === 'local') {
@@ -709,35 +618,40 @@
   async function runCustom() {
     if (live) { stopLive(); return; }
     if (running || !draftReady) return;
+    const epoch = runEpoch;
     running = true;
     ui.langSel.disabled = true;
-    const place = await executionPlace(runEpoch);
-    if (place !== 'remote') {
-      if (place === 'local') startLive();
-      else setStatus('중지됨');
+    try {
+      await editor.flush();
+      const place = await executionPlace(epoch);
+      if (place !== 'remote') {
+        if (place === 'local') startLive();
+        else setStatus('중지됨');
+        return;
+      }
+      showTab('term');
+      saveDraft(false);
+      const info = currentInfo();
+      const stdin = ui.termIn.value;
+      termAppend(line('info', `${currentLang().name} · 직접 입력으로 실행 중… [Wandbox]`));
+      setStatus('실행 중…', 'busy');
+      const res = await execute(stdin, info, editor.doc.code);
+      if (!showRunFailure(res)) {
+        termAppend(line('cmd', commandLine(res, info)));
+        termAppend(block('출력', res.stdout.replace(/\n$/, '')));
+        if (res.stderr) termAppend(block('stderr', res.stderr.trimEnd(), 'dim'));
+        const note = runtimeNote(res);
+        termAppend(line(note ? 'err' : 'dim', note || '정상 종료'));
+        setStatus(note ? '런타임 문제' : '실행 완료', note ? 'err' : '');
+      } else {
+        setStatus('컴파일 에러', 'err');
+      }
+    } catch (error) {
+      setStatus(error.message || '실행 결과를 읽지 못했어요.', 'err');
+    } finally {
       running = false;
       ui.langSel.disabled = false;
-      return;
     }
-    showTab('term');
-    saveDraft(false);
-    const info = currentInfo();
-    const stdin = ui.termIn.value;
-    termAppend(line('info', `${currentLang().name} · 직접 입력으로 실행 중… [Wandbox]`));
-    setStatus('실행 중…', 'busy');
-    const res = await execute(stdin, info, cm.getValue());
-    if (!showRunFailure(res)) {
-      termAppend(line('cmd', commandLine(res, info)));
-      termAppend(block('출력', res.stdout.replace(/\n$/, '')));
-      if (res.stderr) termAppend(block('stderr', res.stderr.trimEnd(), 'dim'));
-      const note = runtimeNote(res);
-      termAppend(line(note ? 'err' : 'dim', note || '정상 종료'));
-      setStatus(note ? '런타임 문제' : '실행 완료', note ? 'err' : '');
-    } else {
-      setStatus('컴파일 에러', 'err');
-    }
-    running = false;
-    ui.langSel.disabled = false;
   }
 
   function startLive() {
@@ -754,7 +668,7 @@
     setLiveUI(true);
     setStatus('컴파일 중…', 'busy');
     runner.handlers.set(id, onLive);
-    try { port.postMessage({ type: 'run', id, ...nativeOptions(), lang: currentInfo(), code: cm.getValue(), stdin: live.pendingEcho, interactive: true }); }
+    try { port.postMessage({ type: 'run', id, ...nativeOptions(), lang: currentInfo(), code: editor.doc.code, stdin: live.pendingEcho, interactive: true }); }
     catch { onLive({ type: 'lost', id, message: '도우미에 연결하지 못했어요.' }); }
   }
 
@@ -835,6 +749,7 @@
   }
 
   function onTermKey(e) {
+    if (!e.isTrusted || e.isComposing || e.keyCode === 229) return;
     if (live) {
       if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
         e.preventDefault();
@@ -875,9 +790,13 @@
     return h('span', { class: 'cboj-res ' + (FINAL.includes(row.key) ? row.key : 'pending'), text: row.text || '기다리는 중' });
   }
 
-  function submit() {
+  async function submit() {
     if (!draftReady) return;
-    const code = cm.getValue();
+    const generation = editor.generation;
+    try { await editor.flush(); }
+    catch (error) { setStatus(error.message, 'err'); return; }
+    if (!isOpen || !draftReady || generation !== editor.generation) return;
+    const code = editor.doc.code;
     showTab('result');
     if (!code.trim()) { setCard('err', '코드가 비어 있어요'); return; }
     if (!me) {
@@ -980,13 +899,14 @@
     ui.panel.hidden = false;
     applyLayout();
     toggleBtn.classList.add('active');
-    setTimeout(() => { if (isOpen) { cm.refresh(); cm.focus(); } }, 30);
+    try { await editor.resume(); }
+    catch (error) { setStatus(error.message, 'err'); }
   }
   function close() {
     if (!isOpen) return;
     isOpen = false;
     runEpoch++;
-    saveDraft(false);
+    if (editor) editor.suspend().then(() => saveDraft(false)).catch(() => {});
     if (live) stopLive();
     if (batchId !== null) stopBatch();
     document.documentElement.classList.remove('cboj-open');
@@ -1012,13 +932,24 @@
     }
   });
   addEventListener('resize', () => { if (isOpen) applyLayout(); });
-  addEventListener('beforeunload', () => { if (cm) saveDraft(false); });
+  addEventListener('pagehide', () => {
+    clearTimeout(saveTimer);
+    // The frame owns the last keystroke and saves it during its own pagehide.
+    // Let Chrome unload it along with the tab.
+  });
+  addEventListener('pageshow', async e => {
+    if (!e.persisted || !editor) return;
+    editor.detach();
+    if (isOpen) {
+      try { await loadDraft(); if (isOpen) await editor.resume(); }
+      catch (error) { setStatus(error.message, 'err'); }
+    }
+  });
 
   // ───────── 설정 ─────────
   function applySettings(s) {
     settings = { ...DEFAULTS, ...s };
-    if (cm) cm.setOption('theme', settings.editorTheme === 'dark' ? 'cboj-dark' : 'cboj-light');
-    if (cm) cm.setOption('indentWithTabs', useTabs());
+    editor?.configure({ theme: settings.editorTheme, spaces: !useTabs(), minimap: !!settings.editorMinimap });
     if (ui) ui.panel.classList.toggle('dark', settings.editorTheme === 'dark');
   }
   store.get('sync', DEFAULTS).then((s) => {

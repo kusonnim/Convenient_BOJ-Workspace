@@ -6,6 +6,7 @@
   const TEMPLATES = globalThis.CBOJ_TEMPLATES;
   let s = { ...DEFAULTS };
   let hostInfo = null;
+  let settingsReady = false;
   const runnerChoice = document.getElementById('runnerChoice');
   ext.storage.local.get({ runnerChoice: 'auto' }, (v) => { runnerChoice.value = v.runnerChoice; refreshDefault(); });
   runnerChoice.addEventListener('change', () => {
@@ -53,7 +54,7 @@
     return globalThis.cbojCppTemplate(compiler === 'msvc');
   }
   function refreshDefault() {
-    if (!tplState.classList.contains('dirty') && !tplState.classList.contains('error')) showTemplate();
+    if (settingsReady && !tplState.classList.contains('dirty') && !tplState.classList.contains('error')) showTemplate();
   }
 
   const currentTemplate = (l) => {
@@ -155,7 +156,13 @@
     });
   } catch { showRunner(null); }
 
-  if (ext) ext.storage.sync.get(DEFAULTS, (v) => { s = { ...DEFAULTS, ...v }; render(); showTemplate(); });
+  tplText.readOnly = true;
+  if (ext) ext.storage.sync.get(DEFAULTS, (v) => {
+    s = { ...DEFAULTS, ...v };
+    settingsReady = true;
+    render();
+    showTemplate();
+    tplText.readOnly = false;
+  });
   render();
-  showTemplate();
 })();

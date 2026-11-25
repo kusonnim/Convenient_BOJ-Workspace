@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "scripts": {
     "test": "playwright test",
-    "test:p1": "playwright test --config playwright.native.config.mjs"
+    "test:p1": "playwright test --config playwright.native.config.mjs",
+    "test:p2": "playwright test --config playwright.editor.config.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1"

@@ -1,0 +1,13 @@
+{
+  "protocol": 2,
+  "type": "info",
+  "version": "2.0.0",
+  "python": "3.14.3",
+  "gcc": "gcc.EXE (Rev4, Built by MSYS2 project) 16.2.0",
+  "gpp": "g++.EXE (Rev4, Built by MSYS2 project) 16.2.0",
+  "msvc": "195136260",
+  "msvcStandards": [
+    "c++17",
+    "c++20"
+  ]
+}

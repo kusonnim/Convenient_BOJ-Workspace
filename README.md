@@ -19,8 +19,9 @@
 - 왼쪽에는 원래 문제가 그대로 있고, 오른쪽에 코드 에디터와 결과 창이 붙습니다.
 - 패널 왼쪽 경계와 에디터·결과 사이 경계를 끌어서 크기를 바꿀 수 있어요(크기는 기억돼요).
 - 작성한 코드는 **문제·언어별로 자동 저장**돼서 다시 열어도 그대로 있어요.
+- 코드 작성에는 VS Code의 **Monaco Editor**를 사용해요. 선택한 텍스트를 끌어서 옮기거나, Alt+클릭으로 여러 곳을 동시에 편집할 수 있어요. Shift+Alt를 누르고 끌면 열을 선택해요. 미니맵은 팝업에서 켤 수 있어요.
 - **들여쓰기**는 팝업에서 고를 수 있어요.
-  - **탭**(기본): Tab 키가 탭 문자 하나를 넣고, Backspace 한 번에 지워져요. 탭은 옅은 세로선으로 보여서 공백과 구분돼요.
+  - **탭**(기본): Tab 키가 탭 문자 하나를 넣고, Backspace 한 번에 지워져요. 들여쓰기의 탭은 화살표로, 공백은 점으로 보여요.
   - **공백 4칸**: Tab 키가 공백을 4칸 단위로 넣고, 줄 앞 공백은 Backspace 한 번에 4칸씩 지워져요.
 - **엔터 자동 들여쓰기는 VS Code 규칙**을 따라요.
   - C/C++: 닫히지 않은 `{` 또는 `(`로 끝나는 줄 다음만 한 단계 들여쓰기 (`;`가 빠진 줄, `if (x)` 다음은 같은 깊이)
@@ -113,6 +114,10 @@ git tag v1.0.1; git push origin v1.0.1
 | Ctrl + Enter | 예제로 실행 |
 | Ctrl + Shift + Enter | 제출 탭 열기 |
 | Ctrl + S | 코드 저장 |
+| Ctrl + Space | 언어 키워드·문서 안 단어 완성 |
+| Ctrl + F | 편집기 안에서 찾기 (왼쪽 화살표로 바꾸기 열기) |
+| Alt + ↑ / ↓ | 줄 이동 |
+| Shift + Alt + ↑ / ↓ | 줄 복제 |
 
 ## 알아 두면 좋은 점
 
@@ -129,6 +134,8 @@ manifest.json            확장 설정 (MV3)
 background.js            코드 실행(Wandbox API), 내 PC 도우미 연결, 제출 탭 열기·포커스·닫기
 content/split.js         분할 화면: 에디터, 실행 터미널, 제출 탭 열기, 채점 결과 표시
 content/split.css
+content/editor.js        초안·커서와 편집기 프레임 연결
+editor/                  확장 전용 Monaco 편집 화면
 content/submit.js        제출 페이지: 코드·언어 채우기 안내, 언어 목록 저장
 content/submit-main.js   제출 페이지(페이지 world): 백준 에디터에 코드 넣기
 content/status.js        채점 현황 페이지: A로 포커스 돌리기, 결과를 분할 화면으로 전달
@@ -136,7 +143,8 @@ popup/                   설정 팝업
 host/                    내 PC 실행 도우미(cboj_host.py)와 설치·제거 스크립트
 shared/defaults.js       공통 기본 설정
 shared/boj.js            채점 결과 읽기
-vendor/codemirror/       CodeMirror 5 (MIT)
+vendor/monaco/           Monaco Editor·워커·글꼴·라이선스
+tools/monaco/            고정 버전 편집기 빌드 (npm ci, npm run build)
 docs/screenshots/        실제 동작 캡처
 .github/workflows/       태그를 올리면 Releases에 ZIP 배포
 ```

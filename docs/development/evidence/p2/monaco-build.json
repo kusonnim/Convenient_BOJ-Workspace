@@ -1,0 +1,57 @@
+[
+  {
+    "file": "codicon.ttf",
+    "bytes": 154520,
+    "sha256": "64027d2f24db48f81abe77f68c82e6aa70ee50e4827e1b6c3dd2b99170100a14"
+  },
+  {
+    "file": "Codicons-NOTICE.txt",
+    "bytes": 236,
+    "sha256": "f3d981b892fd557ffa0f6b82e7b7cef39f9eb47b29b29091282e419288fa99ea"
+  },
+  {
+    "file": "DOMPurify-APACHE.txt",
+    "bytes": 11358,
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "DOMPurify-MPL.txt",
+    "bytes": 16726,
+    "sha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85"
+  },
+  {
+    "file": "editor.css",
+    "bytes": 139968,
+    "sha256": "ab2f10e243a4e685cceff74733d9f0c6a3a0b9427bab95ff1cf2cb7529ac2fd6"
+  },
+  {
+    "file": "editor.js",
+    "bytes": 3302707,
+    "sha256": "54541998eba3247a9cd9f8299c8981b538b3cd29473f1715597a3022e648fb21"
+  },
+  {
+    "file": "editor.worker.js",
+    "bytes": 345725,
+    "sha256": "1f172ba3f49eb3ef72054f03aa43c60a6841302d27147f28ceada432a70640fa"
+  },
+  {
+    "file": "LICENSE",
+    "bytes": 1098,
+    "sha256": "33e4ff1a06ef62ba21788ea162564ee8165269a24a9ce6ef301837447eab0ac6"
+  },
+  {
+    "file": "Marked-LICENSE.txt",
+    "bytes": 2942,
+    "sha256": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c"
+  },
+  {
+    "file": "ThirdPartyNotices.txt",
+    "bytes": 63064,
+    "sha256": "790537262fc78a764e121e6b92b959bcd3f5c310b47d9d9b9e92e17fe0af5336"
+  },
+  {
+    "file": "VSCode-Diff-LICENSE.txt",
+    "bytes": 1141,
+    "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+  }
+]

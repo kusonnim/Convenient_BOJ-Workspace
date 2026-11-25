@@ -7,7 +7,7 @@ export const origin = 'https://www.acmicpc.net';
 export const extensionId = 'mabfdombglhmfnjklbnoglebinejifdi';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const files = fileURLToPath(new URL('fixtures/', import.meta.url));
-const packageFiles = ['manifest.json', 'background.js', 'content', 'popup', 'shared', 'icons', 'vendor', 'host'];
+const packageFiles = ['manifest.json', 'background.js', 'content', 'editor', 'popup', 'shared', 'icons', 'vendor', 'host'];
 
 // Only the two external endpoints of background.js are doubled. Chrome owns
 // both script worlds, storage, tab selection, runtime messages and tab ports.
@@ -42,6 +42,7 @@ function installDoubles() {
 
 export const test = base.extend({
   realHost: [false, { option: true }],
+  backForwardCache: [false, { option: true }],
   unpacked: [async ({}, use, workerInfo) => {
     const dir = path.join(workerInfo.project.outputDir, 'unpacked');
     await mkdir(dir, { recursive: true });
@@ -49,7 +50,7 @@ export const test = base.extend({
     await use(dir);
   }, { scope: 'worker' }],
 
-  lab: async ({ unpacked, realHost }, use, testInfo) => {
+  lab: [async ({ unpacked, realHost, backForwardCache }, use, testInfo) => {
     const nativeTemp = testInfo.outputPath('native-temp');
     if (realHost) await mkdir(nativeTemp, { recursive: true });
     const context = await chromium.launchPersistentContext('', {
@@ -60,7 +61,7 @@ export const test = base.extend({
       viewport: { width: 1280, height: 800 },
       deviceScaleFactor: 1,
       env: realHost ? { ...process.env, TEMP: nativeTemp, TMP: nativeTemp, TMPDIR: nativeTemp } : undefined,
-      ignoreDefaultArgs: ['--disable-extensions'],
+      ignoreDefaultArgs: backForwardCache ? ['--disable-extensions', '--disable-back-forward-cache'] : ['--disable-extensions'],
       args: ['--enable-unsafe-extension-debugging', '--no-proxy-server', '--host-resolver-rules=MAP * ~NOTFOUND'],
     });
     try {
@@ -69,7 +70,7 @@ export const test = base.extend({
         const url = new URL(route.request().url());
         if (url.origin === origin && route.request().method() === 'GET') {
           if (['/fixtures/codemirror.js', '/fixtures/codemirror.css'].includes(url.pathname)) {
-            return route.fulfill({ path: path.join(unpacked, 'vendor/codemirror', path.basename(url.pathname)) });
+            return route.fulfill({ path: path.join(files, 'codemirror', path.basename(url.pathname)) });
           }
           let name;
           if (/^\/problem\/\d+$/.test(url.pathname)) name = 'problem';
@@ -91,9 +92,10 @@ export const test = base.extend({
       await use({ context, worker, nativeTemp });
       expect(badRequests).toEqual([]);
     } finally {
-      await context.close();
+      try { await Promise.all(context.pages().map(p => p.close())); }
+      finally { await context.close(); }
     }
-  },
+  }, { timeout: 90_000 }],
 });
 
 export async function problem(lab, pid = '1000') {
@@ -107,13 +109,48 @@ export async function openPanel(page) {
   await page.locator('.cboj-toggle').click();
   await expect(page.locator('#cboj-panel')).toBeVisible();
   await expect(page.locator('.cboj-lang option:checked')).toHaveCount(1);
-  await expect(page.locator('.CodeMirror-focused')).toBeVisible();
+  await focusedEditor(page);
 }
 
+export async function editorFrame(page) {
+  const match = f => f.url().startsWith('chrome-extension://' + extensionId + '/editor/frame.html');
+  return page.frames().find(match) || page.waitForEvent('framenavigated', { predicate: match });
+}
+export async function focusedEditor(page) {
+  const frame = await editorFrame(page);
+  await expect(frame.locator('.monaco-editor.focused')).toBeVisible({ timeout: 20000 });
+  return frame;
+}
+export async function editorLines(page) {
+  return (await editorFrame(page)).locator('.view-lines');
+}
+export function editorInput(frame) {
+  return frame.locator('.monaco-editor .native-edit-context, .monaco-editor textarea.inputarea');
+}
+export async function observeComposition(frame) {
+  return editorInput(frame).evaluate(node => {
+    const target = node.editContext || node;
+    window.testComposition = [];
+    for (const type of ['compositionstart', 'compositionupdate', 'compositionend', 'textupdate', 'beforeinput', 'input']) {
+      target.addEventListener(type, e => window.testComposition.push({
+        type, text: e.text ?? e.data ?? '', trusted: e.isTrusted, inputType: e.inputType,
+      }), true);
+    }
+    return node.editContext ? 'EditContext' : 'textarea';
+  });
+}
 export async function loadCode(page, code) {
-  await page.locator('.CodeMirror textarea').focus();
+  const frame = await editorFrame(page);
+  const input = editorInput(frame);
+  await input.focus();
   await page.keyboard.press('Control+a');
-  await page.keyboard.insertText(code);
+  // Chrome's Input.insertText sends a typing operation: Monaco legitimately
+  // auto-indents new lines. Use the paste handler for a whole source file.
+  await input.evaluate((node, text) => {
+    const data = new DataTransfer();
+    data.setData('text/plain', text);
+    node.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: data }));
+  }, code);
 }
 
 export function stored(worker, area, key) {

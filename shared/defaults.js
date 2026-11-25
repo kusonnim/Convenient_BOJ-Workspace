@@ -2,6 +2,7 @@
 globalThis.CBOJ_DEFAULTS = Object.freeze({
   splitAutoOpen: false,
   editorTheme: 'light',
+  editorMinimap: false,
   indent: 'tab', // tab(탭 문자) | space(공백 4칸)
   codeOpen: 'default', // default(백준 설정 따름) | open | close | onlyaccepted
   templates: {}, // 사용자가 바꾼 기본 코드 { cpp, c, py } (비어 있으면 아래 기본값)

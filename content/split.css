@@ -4,6 +4,9 @@
 html.cboj-open body { margin-right: var(--cboj-w, 50vw) !important; }
 html.cboj-open .container { width: auto !important; max-width: 1170px; }
 html.cboj-dragging, html.cboj-dragging * { user-select: none !important; cursor: col-resize; }
+html.cboj-dragging .cboj-editor { pointer-events: none; }
+html.cboj-dragging #cboj-panel::after { content: ""; position: fixed; inset: 0; z-index: 10; }
+.cboj-resizer-x, .cboj-resizer-y { touch-action: none; }
 
 .cboj-toggle { margin-right: 6px; font-weight: 700; }
 .cboj-toggle.active { background: #2E5F8C !important; border-color: #2E5F8C !important; }
@@ -30,7 +33,7 @@ html.cboj-open .cboj-toggle.floating { display: none; }
 #cboj-panel *, #cboj-panel *::before, #cboj-panel *::after { box-sizing: border-box; }
 #cboj-panel.dark {
   --bg: #1B1D22; --bg2: #23262D; --line: #33373F; --ink: #E3E5E8; --muted: #8B929C;
-  --term-bg: #15171B;
+  --term-bg: #15171B; --success-ink: #86D69D;
 }
 
 #cboj-panel button { font: inherit; cursor: pointer; margin: 0; }
@@ -72,57 +75,6 @@ html.cboj-open .cboj-toggle.floating { display: none; }
 
 /* 에디터 */
 .cboj-editor { flex: 1 1 auto; min-height: 120px; position: relative; overflow: hidden; }
-#cboj-panel .CodeMirror {
-  height: 100%;
-  font-family: "D2Coding", "JetBrains Mono", "Cascadia Code", Consolas, "Courier New", monospace;
-  font-size: 14px; line-height: 1.55;
-}
-/* 부트스트랩 pre 스타일 되돌리기 */
-#cboj-panel .CodeMirror pre.CodeMirror-line,
-#cboj-panel .CodeMirror pre.CodeMirror-line-like {
-  padding: 0 6px; margin: 0; background: transparent; border: 0; border-radius: 0;
-  font-size: inherit; line-height: inherit; color: inherit;
-  word-break: normal; word-wrap: normal; white-space: pre; overflow: visible;
-}
-#cboj-panel .CodeMirror-gutters { border-right: 1px solid var(--line); }
-#cboj-panel .CodeMirror-linenumber { padding: 0 8px 0 6px; }
-
-/* 밝은 테마 */
-#cboj-panel .cm-s-cboj-light.CodeMirror { background: #FFFFFF; color: #24292F; }
-#cboj-panel .cm-s-cboj-light .CodeMirror-gutters { background: #F7F8FA; }
-#cboj-panel .cm-s-cboj-light .CodeMirror-linenumber { color: #A0A7B0; }
-#cboj-panel .cm-s-cboj-light .CodeMirror-cursor { border-left: 2px solid #0076C0; }
-#cboj-panel .cm-s-cboj-light .CodeMirror-selected { background: #D7E9F8; }
-#cboj-panel .cm-s-cboj-light.CodeMirror-focused .CodeMirror-selected { background: #CBE2F7; }
-#cboj-panel .cm-s-cboj-light .cm-keyword { color: #CF222E; }
-#cboj-panel .cm-s-cboj-light .cm-def { color: #8250DF; }
-#cboj-panel .cm-s-cboj-light .cm-variable-2, #cboj-panel .cm-s-cboj-light .cm-variable-3, #cboj-panel .cm-s-cboj-light .cm-type { color: #0550AE; }
-#cboj-panel .cm-s-cboj-light .cm-builtin { color: #953800; }
-#cboj-panel .cm-s-cboj-light .cm-string, #cboj-panel .cm-s-cboj-light .cm-string-2 { color: #0A3069; }
-#cboj-panel .cm-s-cboj-light .cm-number, #cboj-panel .cm-s-cboj-light .cm-atom { color: #0550AE; }
-#cboj-panel .cm-s-cboj-light .cm-comment { color: #6E7781; font-style: italic; }
-#cboj-panel .cm-s-cboj-light .cm-meta { color: #8250DF; }
-#cboj-panel .cm-s-cboj-light .cm-operator { color: #CF222E; }
-#cboj-panel .cm-s-cboj-light .CodeMirror-matchingbracket { color: inherit !important; background: #FFE58F; outline: 1px solid #F0C000; }
-
-/* 어두운 테마 */
-#cboj-panel .cm-s-cboj-dark.CodeMirror { background: #1B1D22; color: #D7DAE0; }
-#cboj-panel .cm-s-cboj-dark .CodeMirror-gutters { background: #1B1D22; }
-#cboj-panel .cm-s-cboj-dark .CodeMirror-linenumber { color: #5C6370; }
-#cboj-panel .cm-s-cboj-dark .CodeMirror-cursor { border-left: 2px solid #61AFEF; }
-#cboj-panel .cm-s-cboj-dark .CodeMirror-selected { background: #2C323C; }
-#cboj-panel .cm-s-cboj-dark.CodeMirror-focused .CodeMirror-selected { background: #3A4250; }
-#cboj-panel .cm-s-cboj-dark .cm-keyword { color: #C678DD; }
-#cboj-panel .cm-s-cboj-dark .cm-def { color: #61AFEF; }
-#cboj-panel .cm-s-cboj-dark .cm-variable-2, #cboj-panel .cm-s-cboj-dark .cm-variable-3, #cboj-panel .cm-s-cboj-dark .cm-type { color: #E5C07B; }
-#cboj-panel .cm-s-cboj-dark .cm-builtin { color: #56B6C2; }
-#cboj-panel .cm-s-cboj-dark .cm-string, #cboj-panel .cm-s-cboj-dark .cm-string-2 { color: #98C379; }
-#cboj-panel .cm-s-cboj-dark .cm-number, #cboj-panel .cm-s-cboj-dark .cm-atom { color: #D19A66; }
-#cboj-panel .cm-s-cboj-dark .cm-comment { color: #7F848E; font-style: italic; }
-#cboj-panel .cm-s-cboj-dark .cm-meta { color: #E06C75; }
-#cboj-panel .cm-s-cboj-dark .cm-operator { color: #56B6C2; }
-#cboj-panel .cm-s-cboj-dark .CodeMirror-matchingbracket { color: inherit !important; background: #3E4451; outline: 1px solid #7F848E; }
-
 /* 아래 영역 */
 .cboj-resizer-y { flex: none; height: 6px; cursor: row-resize; background: var(--bg2); border-top: 1px solid var(--line); }
 .cboj-bottom { flex: none; height: var(--cboj-bottom-h, 260px); display: flex; flex-direction: column; min-height: 0; }
@@ -135,7 +87,7 @@ html.cboj-open .cboj-toggle.floating { display: none; }
 }
 #cboj-panel .cboj-tab.active { color: var(--ink); border-bottom-color: var(--blue); }
 .cboj-status { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--muted); }
-.cboj-status.ok { color: var(--green); }
+.cboj-status.ok { color: var(--success-ink, #23743B); }
 .cboj-status.err { color: var(--red); }
 .cboj-status.busy { color: var(--amber); }
 
@@ -183,7 +135,7 @@ html.cboj-open .cboj-toggle.floating { display: none; }
   font: 12.5px/1.55 "D2Coding", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
 }
 .cboj-term-out .tl { white-space: pre-wrap; word-break: break-all; }
-.cboj-term-out .tl.cmd { color: #8B929C; }
+.cboj-term-out .tl.cmd { color: #A2AAB5; word-break: normal; overflow-wrap: anywhere; }
 .cboj-term-out .tl.info { color: #61AFEF; }
 .cboj-term-out .tl.dim { color: #7F848E; }
 .cboj-term-out .tl.ok { color: #98C379; }
@@ -209,16 +161,12 @@ html.cboj-open .cboj-toggle.floating { display: none; }
 #cboj-panel .cboj-term-actions .cboj-link { color: #8B929C; }
 .cboj-card-sub.warn { color: var(--amber); font-weight: 600; }
 
-/* 탭 문자를 옅은 세로선으로 보여 줘서 공백과 구분 */
-#cboj-panel .CodeMirror .cm-tab { box-shadow: inset 1px 0 0 rgba(128, 128, 128, .28); }
-#cboj-panel.dark .CodeMirror .cm-tab { box-shadow: inset 1px 0 0 rgba(200, 200, 200, .18); }
-
 /* 실행 위치 표시 (내 PC / Wandbox) */
 #cboj-panel .cboj-where {
   margin-left: auto; border: 0; background: none; padding: 2px 6px; border-radius: 6px;
   font-size: 11.5px; font-weight: 700; color: var(--muted);
 }
-#cboj-panel .cboj-where.local { color: var(--green); cursor: default; }
+#cboj-panel .cboj-where.local { color: var(--success-ink, #23743B); cursor: default; }
 #cboj-panel .cboj-where.remote { color: var(--muted); }
 #cboj-panel .cboj-where.remote:hover { background: var(--line); color: var(--ink); }
 #cboj-panel .cboj-where + .cboj-status { margin-left: 10px; }

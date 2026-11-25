@@ -261,6 +261,8 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 const HANDLERS = {
+  'cboj:editor-tab': (_msg, sender) => sender.id === chrome.runtime.id && sender.frameId > 0
+    && sender.url?.split('#')[0] === chrome.runtime.getURL('editor/frame.html') ? sender.tab?.id : null,
   'cboj:run': (msg, sender) => problemSender(sender) && msg.remoteConfirmed === true && validProgram(msg) && bytes(msg.stdin) <= runnerLimit
     ? run(msg) : { ok: false, error: 'Wandbox 전송 동의와 실행 요청을 확인해 주세요.' },
   'cboj:open-submit': openSubmit,

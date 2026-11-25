@@ -1,14 +1,15 @@
 import { expect } from '@playwright/test';
-import { extensionId, info, loadCode, openPanel, origin, problem, stored, test } from './chrome-fixture.mjs';
+import { editorFrame, editorInput, editorLines, focusedEditor, extensionId, info, loadCode, openPanel, origin, problem, stored, test } from './chrome-fixture.mjs';
 
 const cpp = '#include <iostream>\n\nint main() {\n    int a, b;\n    std::cin >> a >> b;\n    std::cout << a + b;\n}';
 const verdict = page => page.locator('.cboj-status');
 const log = page => page.locator('.cboj-term-out');
 
-async function launchSubmit(lab, page, shortcut = false) {
+async function launchSubmit(lab, page) {
+  await expect(page.locator('.cboj-btn.submit')).toBeEnabled();
+  await editorInput(await editorFrame(page)).focus();
   const opened = lab.context.waitForEvent('page');
-  if (shortcut) await page.keyboard.press('Control+Shift+Enter');
-  else await page.locator('.cboj-btn.submit').click();
+  await page.keyboard.press('Control+Shift+Enter');
   const tab = await opened;
   await expect(tab.locator('#cboj-banner')).toBeVisible();
   return tab;
@@ -53,11 +54,11 @@ test('old drafts, template cursor, language families and explicit save survive r
   const draft = family => stored(lab.worker, 'local', 'draft:1000:' + family);
   await expect.poll(() => draft('cpp')).toMatchObject({ code: '// old!', cursor: { line: 0, ch: 7 } });
   await page.locator('.cboj-lang').selectOption('95');
-  await expect(page.locator('.CodeMirror-code')).toContainText('// old!');
+  await expect(await editorLines(page)).toContainText('// old!');
   await page.locator('.cboj-lang').selectOption('75');
-  await expect(page.locator('.CodeMirror-code')).toContainText('stdio.h');
+  await expect(await editorLines(page)).toContainText('stdio.h');
   await page.locator('.cboj-lang').selectOption('28');
-  await expect(page.locator('.CodeMirror-code')).toContainText('print("")');
+  await expect(await editorLines(page)).toContainText('print("")');
   await page.keyboard.insertText('한글');
   await page.keyboard.press('ArrowLeft');
   await page.keyboard.press('Control+s');
@@ -71,7 +72,7 @@ test('old drafts, template cursor, language families and explicit save survive r
   await expect.poll(() => draft('cpp')).toMatchObject({ code: '// old!' });
   const other = await problem(lab, '1001');
   await openPanel(other);
-  await expect(other.locator('.CodeMirror-code')).toContainText('print("")');
+  await expect(await editorLines(other)).toContainText('print("")');
 });
 
 test('popup saves a template for fresh problems and preserves the previous value on quota rejection', async ({ lab }) => {
@@ -90,9 +91,9 @@ test('popup saves a template for fresh problems and preserves the previous value
   await popup.locator('#tplSave').click();
   await expect(popup.locator('#tplState')).toHaveClass(/error/);
   expect(await stored(lab.worker, 'sync', 'templates')).toEqual({ cpp: '// $0new template' });
-  await popup.locator('.toggle').click();
+  await popup.locator('label.toggle').filter({ has: popup.locator('[data-key=splitAutoOpen]') }).click();
   const page = await problem(lab);
-  await expect(page.locator('.CodeMirror-focused')).toBeVisible();
+  await focusedEditor(page);
   await page.keyboard.insertText('a ');
   await page.keyboard.press('Control+s');
   await expect.poll(() => stored(lab.worker, 'local', 'draft:1000:cpp')).toMatchObject({ code: '// a new template' });
@@ -160,7 +161,7 @@ test('missing host uses Wandbox fixtures for C, C++ and Python, including run-on
     ['28', '# Python ready', 'pass', 'cpython-3.13.18', ''],
   ]) {
     await page.locator('.cboj-lang').selectOption(id);
-    await expect(page.locator('.CodeMirror-code')).toContainText(template);
+    await expect(await editorLines(page)).toContainText(template);
     await loadCode(page, code);
     await lab.worker.evaluate(() => { self.fixtureIO.remoteCalls.length = 0; });
     await page.keyboard.press('Control+Enter');
@@ -219,7 +220,7 @@ test('manual submit prefill, pending judge, focus return, final result and tab c
   const page = await problem(lab);
   await openPanel(page);
   await loadCode(page, cpp);
-  const tab = await launchSubmit(lab, page, true);
+  const tab = await launchSubmit(lab, page);
   expect(tab.url()).toBe(origin + '/submit/1000');
   expect(await tab.locator('.CodeMirror').evaluate(el => el.CodeMirror.getValue())).toBe(cpp);
   await expect(tab.locator('select')).toHaveValue('84');

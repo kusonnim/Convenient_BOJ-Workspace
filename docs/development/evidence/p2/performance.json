@@ -1,0 +1,139 @@
+[
+  {
+    "phase": "p1",
+    "chromeVersion": "158.0.8127.37",
+    "lines": 400,
+    "samples": [
+      {
+        "beforeTabHeapKiB": 2670,
+        "opens": [
+          {
+            "readyMs": 223,
+            "tabHeapKiB": 3289,
+            "frameHeapKiB": null
+          },
+          {
+            "readyMs": 115,
+            "tabHeapKiB": 3649,
+            "frameHeapKiB": null
+          }
+        ],
+        "afterClose": {
+          "tabHeapKiB": 3408
+        },
+        "editorWorkersAfterClose": 0
+      },
+      {
+        "beforeTabHeapKiB": 2669,
+        "opens": [
+          {
+            "readyMs": 369,
+            "tabHeapKiB": 3272,
+            "frameHeapKiB": null
+          },
+          {
+            "readyMs": 73,
+            "tabHeapKiB": 3622,
+            "frameHeapKiB": null
+          }
+        ],
+        "afterClose": {
+          "tabHeapKiB": 3731
+        },
+        "editorWorkersAfterClose": 0
+      },
+      {
+        "beforeTabHeapKiB": 2670,
+        "opens": [
+          {
+            "readyMs": 146,
+            "tabHeapKiB": 3259,
+            "frameHeapKiB": null
+          },
+          {
+            "readyMs": 67,
+            "tabHeapKiB": 3624,
+            "frameHeapKiB": null
+          }
+        ],
+        "afterClose": {
+          "tabHeapKiB": 3387
+        },
+        "editorWorkersAfterClose": 0
+      }
+    ]
+  },
+  {
+    "phase": "p2",
+    "chromeVersion": "158.0.8127.37",
+    "lines": 400,
+    "samples": [
+      {
+        "beforeTabHeapKiB": 2128,
+        "opens": [
+          {
+            "readyMs": 394,
+            "tabHeapKiB": 2408,
+            "frameHeapKiB": 11194
+          },
+          {
+            "readyMs": 81,
+            "tabHeapKiB": 2627,
+            "frameHeapKiB": 12078
+          }
+        ],
+        "afterClose": {
+          "tabHeapKiB": 2726,
+          "frameHeapKiB": 12227,
+          "views": 0,
+          "models": 0
+        },
+        "editorWorkersAfterClose": 0
+      },
+      {
+        "beforeTabHeapKiB": 2128,
+        "opens": [
+          {
+            "readyMs": 367,
+            "tabHeapKiB": 2408,
+            "frameHeapKiB": 11764
+          },
+          {
+            "readyMs": 68,
+            "tabHeapKiB": 2627,
+            "frameHeapKiB": 14518
+          }
+        ],
+        "afterClose": {
+          "tabHeapKiB": 2726,
+          "frameHeapKiB": 14658,
+          "views": 0,
+          "models": 0
+        },
+        "editorWorkersAfterClose": 0
+      },
+      {
+        "beforeTabHeapKiB": 2128,
+        "opens": [
+          {
+            "readyMs": 364,
+            "tabHeapKiB": 2408,
+            "frameHeapKiB": 11396
+          },
+          {
+            "readyMs": 71,
+            "tabHeapKiB": 2627,
+            "frameHeapKiB": 13591
+          }
+        ],
+        "afterClose": {
+          "tabHeapKiB": 2726,
+          "frameHeapKiB": 13738,
+          "views": 0,
+          "models": 0
+        },
+        "editorWorkersAfterClose": 0
+      }
+    ]
+  }
+]

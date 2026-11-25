@@ -36,17 +36,12 @@
         "https://acmicpc.net/problem/*"
       ],
       "js": [
-        "vendor/codemirror/codemirror.js",
-        "vendor/codemirror/clike.js",
-        "vendor/codemirror/python.js",
-        "vendor/codemirror/matchbrackets.js",
-        "vendor/codemirror/closebrackets.js",
         "shared/defaults.js",
         "shared/boj.js",
+        "content/editor.js",
         "content/split.js"
       ],
       "css": [
-        "vendor/codemirror/codemirror.css",
         "content/split.css"
       ],
       "run_at": "document_idle"
@@ -83,5 +78,9 @@
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "web_accessible_resources": [{
+    "resources": ["editor/frame.html"],
+    "matches": ["https://www.acmicpc.net/*", "https://acmicpc.net/*"]
+  }]
 }

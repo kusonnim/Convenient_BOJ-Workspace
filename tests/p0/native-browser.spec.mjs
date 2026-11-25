@@ -1,6 +1,6 @@
 import { readdir, writeFile } from 'node:fs/promises';
 import { expect } from '@playwright/test';
-import { extensionId, loadCode, openPanel, problem, stored, test } from './chrome-fixture.mjs';
+import { editorLines, extensionId, loadCode, openPanel, problem, stored, test } from './chrome-fixture.mjs';
 
 test.use({ realHost: true });
 const sum = [
@@ -29,8 +29,8 @@ test('registered MSVC, samples, UTF-8, cache identity, diagnostics and explicit 
   const p = await problem(lab);
   await openPanel(p);
   await expect(p.locator('.cboj-where')).toContainText('MSVC');
-  await expect(p.locator('.CodeMirror-code')).toContainText('#include <iostream>');
-  await expect(p.locator('.CodeMirror-code')).not.toContainText('bits/stdc++');
+  await expect(await editorLines(p)).toContainText('#include <iostream>');
+  await expect(await editorLines(p)).not.toContainText('bits/stdc++');
   // Use the workspace's own handle to keep commands and both sample outputs visible.
   const handle = await p.locator('.cboj-resizer-y').boundingBox();
   await p.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
@@ -76,7 +76,7 @@ test('registered MSVC, samples, UTF-8, cache identity, diagnostics and explicit 
   await popup.locator('#runnerChoice').selectOption('gcc');
   await expect(p.locator('.cboj-where')).toContainText('g++');
   await expect(p.locator('.cboj-lang')).toHaveValue('95');
-  await expect(p.locator('.CodeMirror-code')).toContainText('bits/stdc++.h');
+  await expect(await editorLines(p)).toContainText('bits/stdc++.h');
   await loadCode(p, '#include <iostream>\nint main(){int a,b;std::cin>>a>>b;std::cout<<a+b;}');
   await run(p);
   await expect(status(p)).toHaveText('예제 통과');
@@ -141,7 +141,7 @@ test('real terminal input, EOF, stop, simultaneous tabs and disconnect cleanup',
   await expect.poll(() => workdirs(lab)).toEqual([]);
   const reopened = await problem(lab);
   await openPanel(reopened);
-  await expect(reopened.locator('.CodeMirror-code')).toContainText('GetCurrentProcessId');
+  await expect(await editorLines(reopened)).toContainText('GetCurrentProcessId');
   const afterReconnect = await startTerminal(reopened);
   await expect(terminal(reopened)).toContainText('새로 컴파일');
   await reopened.locator('.cboj-term-in').press('Control+d');
@@ -186,7 +186,7 @@ test.describe('host compatibility and user choice', () => {
       const p = await problem(lab);
       await openPanel(p);
       await expect(p.locator('.cboj-where')).toContainText('컴파일러 없음');
-      await expect(p.locator('.CodeMirror-code')).toContainText('saved GNU draft');
+      await expect(await editorLines(p)).toContainText('saved GNU draft');
       p.once('dialog', async dialog => {
         expect(dialog.message()).toContain(legacy ? 'host/install.bat' : 'Wandbox(wandbox.org)');
         await dialog.dismiss();
