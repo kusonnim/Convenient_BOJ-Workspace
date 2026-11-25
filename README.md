@@ -88,6 +88,8 @@ C++ 초안을 열면 도우미가 설치된 clangd와 호환되는 표준 라이
 - 코드 공개 설정은 팝업에서 고를 수 있어요(기본값: 백준 설정을 따름).
 - Each problem tab owns its form and result. When simultaneous forms for the same account and problem lead to an unfiltered status page, use the official submission history to identify the submission. [Fixture verification](docs/development/P4.md)
 
+Development checks use local fixtures for submission, judging and polling. Final submission on BOJ and verification of an external Git workflow belong to the user’s own problem-solving session. Automated and AI-generated submissions are prohibited. [Account-safety rules](PROJECT_SPEC.md#mandatory-boj-account-safety)
+
 ## Installation
 
 ### 1단계: 확장 프로그램 (필수)
@@ -145,7 +147,7 @@ gaudium1257님의 원작 배포판은 별도로 받을 수 있어요. [원작 Re
 
 The optional test-first shortcut profile assigns Ctrl+Enter to the selected case, Ctrl+Shift+Enter to all tests and Ctrl+Shift+S to opening the official form. The classic profile remains the default.
 
-On the integrated Windows build, the STL fixture measured 3.13 s from opening the panel to first semantic completion, 130 ms median for five warm completions, 283 ms from edit to diagnostic and 54.8 MiB for clangd. The original P3 run measured 3.56 s, 232 ms, 897 ms and 67.4 MiB in the same workload. [Performance and raw measurements](docs/development/P4.2.md#performance)
+On the integrated Windows build, the STL fixture measured 3.12 s from opening the panel to first semantic completion, 124 ms median for five warm completions, 271 ms from edit to diagnostic and 55.8 MiB for clangd. The original P3 run measured 3.56 s, 232 ms, 897 ms and 67.4 MiB in the same workload. [Performance and raw measurements](docs/development/P4.2.md#performance)
 
 ## Tests and snippets
 

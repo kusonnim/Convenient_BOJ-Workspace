@@ -1,0 +1,42 @@
+{
+  "verifiedDefaultBranch": "main",
+  "verifiedCommit": "aff572e02ede6b1772425385eb960bfe81135f9b",
+  "implementationMerge": "8da492042a731537b1916c7de37b2c9dfb53a714",
+  "chromeScenarios": {
+    "p0": 9,
+    "p1": 5,
+    "p2": 7,
+    "p3": 5,
+    "p4": 9,
+    "polish": 10
+  },
+  "nativeScenarios": {
+    "native_test.py": 9,
+    "native_p1_test.py": 10,
+    "native_p3_test.py": 7,
+    "native_polish_test.py": 4
+  },
+  "verifiedWithInstalledProductionName": true,
+  "installedHostModulesMatchingFreshCheckout": 7,
+  "cleanOfflineBuildAssetsMatching": 14,
+  "gitFsck": "full, strict",
+  "stlRepeat": {
+    "chromeVersion": "158.0.8127.37",
+    "editorReadyMs": 542,
+    "readyMs": 2876,
+    "coldCompletionMs": 3115,
+    "warmWidgetMs": [
+      124,
+      124,
+      123,
+      142,
+      123
+    ],
+    "diagnosticsMs": 271,
+    "serverWorkingSetKiB": 57112,
+    "launcherWorkingSetKiB": 16436,
+    "nativeHostWorkingSetKiB": 26924
+  },
+  "submissionAndJudging": "local fixtures",
+  "liveSubmissionOrExternalGit": "owner-initiated verification only"
+}
