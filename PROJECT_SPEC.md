@@ -60,6 +60,10 @@ No solved.ac integration in this roadmap, no independent application, no AI-gene
 ## Acceptance principles
 Every phase must retain existing usable features, run relevant automated checks, and verify actual browser interactions when available. Use local fixtures for deterministic BOJ and native-host simulation, plus real Chrome/Windows smoke tests for platform claims. Distinguish fixture results from live results and report blocked checks. Preserve the extension ID, native-host allowlist and packaging. Pushes and releases require explicit owner authorization. See ROADMAP.md for phase gates.
 
-## P4 integration contract
+## Final workspace integration contract
 
-The extension key, native-host name, permission set, runner protocol 2, and analysis protocol 1 are retained. The new settings are additive. Existing draft, template and runner selection formats are read in place. The local P4 review gate precedes the separately developed P4.1. Integration into the fork's default branch and remote publication are deferred to the owner-approved combined integration. [Adapter, settings, native and CSS boundaries](docs/development/P4.md#integration-points-for-p41)
+The extension retains its public key, BOJ content-script scope, native host name, runner protocol 2 and analysis protocol 1. The Monaco adapter owns one model and disposes its editor, analysis, outline and optional Power Mode contributions on close. Editor configuration combines the existing theme, snippets and keyboard profile with typography, wrap, Sticky Scroll, bracket and occurrence settings. The BOJ statement keeps the original page styles.
+
+C++ hosts advertise bounded document-symbol and document-highlight operations through the existing analysis handshake. Formatting is an explicit local operation using clang-format. Locations from compiler output carry the source revision and compiler column units. The Problems panel uses the UTF-16 positions reported by clangd.
+
+Custom tests retain upstream’s per-problem record format. Drafts, snippets, tests and settings can be exported to local plaintext JSON. Restoration merges cases by ID, snippets by language and ID or prefix, and templates by language. Open drafts are protected. The backup excludes submission sessions and credentials. Power Mode defaults to off on fresh and upgraded profiles. [Final integration report](docs/development/P4.2.md) · [Installation](README.md#installation)

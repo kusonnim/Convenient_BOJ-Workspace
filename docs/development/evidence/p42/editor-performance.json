@@ -1,0 +1,194 @@
+{
+  "fixtureLines": 400,
+  "chrome": "158.0.8127.37",
+  "coldReopenProfiles": [
+    {
+      "beforeTabHeapKiB": 2169,
+      "opens": [
+        {
+          "readyMs": 445,
+          "tabHeapKiB": 2536,
+          "frameHeapKiB": 13213,
+          "analysisReadyMs": 2309,
+          "frameWithAnalysisKiB": 15713
+        },
+        {
+          "readyMs": 86,
+          "tabHeapKiB": 3054,
+          "frameHeapKiB": 16591,
+          "analysisReadyMs": 2193,
+          "frameWithAnalysisKiB": 17026
+        }
+      ],
+      "afterClose": {
+        "tabHeapKiB": 2667,
+        "frameHeapKiB": 17171,
+        "views": 0,
+        "models": 0
+      },
+      "editorWorkersAfterClose": 0
+    },
+    {
+      "beforeTabHeapKiB": 2169,
+      "opens": [
+        {
+          "readyMs": 416,
+          "tabHeapKiB": 2536,
+          "frameHeapKiB": 13290,
+          "analysisReadyMs": 2048,
+          "frameWithAnalysisKiB": 15372
+        },
+        {
+          "readyMs": 91,
+          "tabHeapKiB": 3054,
+          "frameHeapKiB": 16410,
+          "analysisReadyMs": 1729,
+          "frameWithAnalysisKiB": 16846
+        }
+      ],
+      "afterClose": {
+        "tabHeapKiB": 2680,
+        "frameHeapKiB": 16984,
+        "views": 0,
+        "models": 0
+      },
+      "editorWorkersAfterClose": 0
+    },
+    {
+      "beforeTabHeapKiB": 2169,
+      "opens": [
+        {
+          "readyMs": 410,
+          "tabHeapKiB": 2536,
+          "frameHeapKiB": 13100,
+          "analysisReadyMs": 2120,
+          "frameWithAnalysisKiB": 14892
+        },
+        {
+          "readyMs": 89,
+          "tabHeapKiB": 3054,
+          "frameHeapKiB": 16376,
+          "analysisReadyMs": 1684,
+          "frameWithAnalysisKiB": 16787
+        }
+      ],
+      "afterClose": {
+        "tabHeapKiB": 2693,
+        "frameHeapKiB": 16957,
+        "views": 0,
+        "models": 0
+      },
+      "editorWorkersAfterClose": 0
+    }
+  ],
+  "keyFrameProfiles": [
+    {
+      "chrome": "158.0.8127.37",
+      "startupMs": 390,
+      "heapKiB": 15948,
+      "typing": [
+        37.9,
+        16.4,
+        16.5,
+        16.2,
+        17.7,
+        15.1,
+        17.1,
+        16.1,
+        17.3,
+        16.2,
+        16.7,
+        17.1,
+        15.9,
+        16.7,
+        16.6,
+        17,
+        17.3,
+        16.5,
+        16.2,
+        17.5,
+        15.6,
+        18,
+        15.8,
+        16.4
+      ],
+      "views": 0,
+      "models": 0,
+      "workers": 0
+    },
+    {
+      "chrome": "158.0.8127.37",
+      "startupMs": 380,
+      "heapKiB": 15879,
+      "typing": [
+        43,
+        14.8,
+        16,
+        16.3,
+        17.3,
+        15.1,
+        17.8,
+        15.3,
+        16.5,
+        17.2,
+        16.9,
+        17.2,
+        15.9,
+        16.1,
+        16.7,
+        16.6,
+        17.2,
+        16.6,
+        16.3,
+        17.8,
+        16.6,
+        17.2,
+        16.4,
+        15.5
+      ],
+      "views": 0,
+      "models": 0,
+      "workers": 0
+    },
+    {
+      "chrome": "158.0.8127.37",
+      "startupMs": 391,
+      "heapKiB": 15874,
+      "typing": [
+        28.3,
+        33.5,
+        19.1,
+        16.5,
+        15.7,
+        17,
+        16.8,
+        17.5,
+        16.2,
+        16.1,
+        16.7,
+        16.3,
+        16.2,
+        16.8,
+        16.5,
+        17.2,
+        16.3,
+        17.6,
+        16.6,
+        16,
+        17.6,
+        15.9,
+        16.4,
+        16
+      ],
+      "views": 0,
+      "models": 0,
+      "workers": 0
+    }
+  ],
+  "firstFocusMedianMs": 416,
+  "reopenFocusMedianMs": 89,
+  "headlessDoubleFocusMedianMs": 390,
+  "combinedMedianHeapMiB": 15.51,
+  "keyboardToFrameMedianMs": 16.6,
+  "keyboardToFrameP95Ms": 28.3
+}

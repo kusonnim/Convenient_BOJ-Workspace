@@ -10,13 +10,16 @@ The original split workspace, drafts, templates, C/C++/Python runner, official s
 | Monaco Editor and local C++ IntelliSense | Multi-cursor editing, folding, find/replace and local clangd completion, signatures, definitions and diagnostics. C and Python retain Monaco language and document-word completion. |
 | Tests and snippets | Select, name, drag or keyboard-reorder custom cases, run one or all enabled cases, inspect raw output and the first differing lines. Save language-specific snippets with tab stops in the popup. |
 | Workspace and submissions | Resizable test, terminal, diagnostics and judge panes. Per-tab prefilling and judge routing keep each form with its originating workspace. Only the user submits on BOJ. |
+| Editor navigation and local tools | Eight themes, Breadcrumbs, Sticky Scroll, semantic occurrence highlighting, local C/C++ formatting and clickable compiler locations. Export drafts, tests, snippets and settings from the popup. |
 | Optional Power Mode | Typing particles, three presets, adjustable intensity, combo bursts and optional shake. Off by default. The editor respects reduced motion. |
 
-**P4 is a local review build.** Load this checkout for P4. The hosted source links below identify the existing P3.5 build until the owner integrates P4.1. [Installation](#installation) · [P4 report and measurements](docs/development/P4.md)
+The default branch contains the integrated workspace. The bundled editor runs from the unpacked extension. Local execution, C++ analysis and formatting use the optional Windows helper. [Installation](#installation) · [Final verification and limitations](docs/development/P4.2.md)
 
-![P4 custom cases in the light workspace, captured in Chrome using the local BOJ fixture](docs/development/evidence/p4/light-cases.png)
+![Custom tests and the original BOJ statement in the integrated Chrome extension](docs/development/evidence/p42/light-cases.png)
 
-![Real typing with the Aurora preset in the P4 editor](docs/development/evidence/p4/power-mode.gif)
+![Breadcrumbs, Sticky Scroll and semantic occurrences in a C++ fixture](docs/development/evidence/p42/scope-highlights.png)
+
+![Real typing with the Aurora preset in the integrated editor](docs/development/evidence/p42/power-mode.gif)
 
 로컬 테스트 페이지에서 `std::vector`의 `push_back` 오버로드 두 개를 제안하는 실제 P3 화면입니다.
 
@@ -89,7 +92,7 @@ C++ 초안을 열면 도우미가 설치된 clangd와 호환되는 표준 라이
 
 ### 1단계: 확장 프로그램 (필수)
 
-1. For P4 review, use the local **workspace** checkout containing this README. Monaco and its worker are bundled. The public archive currently contains P3.5. [Hosted workspace ZIP](https://github.com/kusonnim/Convenient_BOJ-Workspace/archive/refs/heads/workspace.zip)
+1. Download and extract the fork’s default branch, or clone the fork. The extracted folder is `Convenient_BOJ-Workspace-main`. Monaco, its worker and the theme assets are included. [Download the main ZIP](https://github.com/kusonnim/Convenient_BOJ-Workspace/archive/refs/heads/main.zip) · [Official fork](https://github.com/kusonnim/Convenient_BOJ-Workspace)
 2. 크롬 주소창에 `chrome://extensions` 를 입력합니다.
 3. 오른쪽 위 **개발자 모드**를 켭니다.
 4. **압축해제된 확장 프로그램을 로드합니다**를 누르고, `manifest.json`과 `host`가 바로 보이는 프로젝트 루트 폴더를 고릅니다.
@@ -114,12 +117,13 @@ gaudium1257님의 원작 배포판은 별도로 받을 수 있어요. [원작 Re
 - 관리자 권한은 필요 없어요. 도우미는 `%LOCALAPPDATA%\ConvenientBOJ` 에 설치되고 크롬·엣지·웨일에 등록돼요.
 - 지우려면 `host\uninstall.bat` 을 실행해요. (Python·gcc는 지우지 않아요)
 - 이전 도우미에서 MSVC를 사용하려면 새 폴더의 `host\install.bat`을 다시 실행하고 문제 탭을 새로고침해요. 기존 도구로 Chrome에만 등록할 때는 PowerShell에서 `.\host\install.ps1 -RegisterOnly -ChromeOnly`를 실행해요.
+- C/C++ 서식 정리는 로컬 `clang-format`과 최신 도우미가 필요해요. 편집기에서 Shift+Alt+F를 누르고 Ctrl+Z로 되돌릴 수 있어요.
 - C++ IntelliSense에는 도우미, 로컬 clangd와 호환되는 C++ 헤더가 필요해요. 이미 설치된 Visual Studio C++ 도구와 Windows SDK 또는 GCC 헤더를 사용할 수 있어요. clangd가 없다면 설치 후 편집기를 다시 여세요. [clangd 공식 설치 안내](https://clangd.llvm.org/installation)
 
 ### 업데이트
-같은 `workspace` ZIP에서 받은 확장 파일을 기존 설치 폴더에 반영한 뒤 `chrome://extensions`에서 Convenient BOJ의 새로고침(↻)을 누르고 문제 탭도 새로고침해 주세요. 도우미가 바뀌었으면 새 설치 폴더의 `host\install.bat`도 다시 실행해 주세요.
+같은 `main` ZIP에서 받은 확장 파일을 기존 설치 폴더에 반영한 뒤 `chrome://extensions`에서 Convenient BOJ의 새로고침(↻)을 누르고 문제 탭도 새로고침해 주세요. 도우미가 바뀌었으면 새 설치 폴더의 `host\install.bat`도 다시 실행해 주세요.
 
-개발 기록과 다음 단계의 계획은 로드맵에서 볼 수 있어요. [단계별 로드맵](ROADMAP.md)
+단계별 개발 기록과 최종 검증 결과는 로드맵에서 볼 수 있어요. [단계별 로드맵](ROADMAP.md)
 
 ## 단축키
 
@@ -132,6 +136,8 @@ gaudium1257님의 원작 배포판은 별도로 받을 수 있어요. [원작 Re
 | Ctrl + Shift + X | 실행 중지 |
 | Ctrl + S | 코드 저장 |
 | Ctrl + Space | 완성 목록 열기 (C++ 분석이 연결되면 clangd 제안 표시) |
+| Alt + Z | 자동 줄 바꿈 전환 |
+| Shift + Alt + F | C/C++ 서식 정리 (로컬 clang-format) |
 | F12 | C++ 분석이 연결된 편집기에서 선언으로 이동 |
 | Ctrl + F | 편집기 안에서 찾기 (왼쪽 화살표로 바꾸기 열기) |
 | Alt + ↑ / ↓ | 줄 이동 |
@@ -139,13 +145,19 @@ gaudium1257님의 원작 배포판은 별도로 받을 수 있어요. [원작 Re
 
 The optional test-first shortcut profile assigns Ctrl+Enter to the selected case, Ctrl+Shift+Enter to all tests and Ctrl+Shift+S to opening the official form. The classic profile remains the default.
 
-The P4 STL fixture measured 3.08 s for first semantic completion, 116 ms for a warm completion, 689 ms for diagnostics and 55.8 MiB for clangd. The P3 measurements on the original run were 3.56 s, 232 ms, 897 ms and 67.4 MiB. [Workload and measurements](docs/development/P4.md#performance-on-installed-windows-chrome)
+On the integrated Windows build, the STL fixture measured 3.13 s from opening the panel to first semantic completion, 130 ms median for five warm completions, 283 ms from edit to diagnostic and 54.8 MiB for clangd. The original P3 run measured 3.56 s, 232 ms, 897 ms and 67.4 MiB in the same workload. [Performance and raw measurements](docs/development/P4.2.md#performance)
 
 ## Tests and snippets
 
 The Tests tab reads BOJ samples in place. Add a custom tab with **+**. Use the checkbox beside the expected output to compare even an empty string. An unchecked expectation runs the input and displays stdout. A separate checkbox controls inclusion in batch runs. Drag a custom tab or use Alt+Left/Right while it has focus. Raw input, expected output, stdout and stderr remain available in the terminal. The comparison ignores trailing horizontal whitespace, carriage returns and trailing empty lines. Special-judge results are indicative.
 
 Open **사용자 스니펫** in the popup, choose C++, C or Python, and save a prefix and body. Type the prefix in Monaco and press Ctrl+Space. Numbered placeholders such as `${1:value}` accept text and Tab advances to the next position. `$0` sets the final position. Snippets stay in local extension storage.
+
+## Themes, navigation and backup
+
+Choose a palette in the popup. **편집 및 실행 설정** controls type size, line height, wrapping, Sticky Scroll, bracket guides, occurrences, Breadcrumbs and local execution time limits. Breadcrumbs open a symbol picker. C++ scopes and semantic reads use local clangd when available. Compiler messages link to the matching revision of the active draft. Shift+Alt+F runs the local C/C++ formatter as one undoable edit.
+
+Use **초안·테스트·설정 백업** to download a local plaintext JSON copy. The default restore keeps existing conflicts and adds missing records. Explicit replacement prompts before applying conflicts. Open drafts are protected, and restoring a Wandbox preference asks for consent. Keep a backup private if it contains unpublished code.
 
 ## 알아 두면 좋은 점
 
@@ -174,6 +186,6 @@ shared/boj.js            채점 결과 읽기
 vendor/monaco/           Monaco Editor·워커·글꼴·라이선스
 tools/monaco/            고정 버전 편집기 빌드 (npm ci, npm run build)
 docs/screenshots/        원작 화면 캡처
-docs/development/evidence/   P0–P3 검증 화면과 결과
+docs/development/evidence/   P0–P4.2 검증 화면과 결과
 .github/workflows/       태그를 올리면 Releases에 ZIP 배포
 ```

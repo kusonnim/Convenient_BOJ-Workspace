@@ -1,0 +1,26 @@
+{
+  "platform": "Windows",
+  "chrome": "158.0.8127.37",
+  "unpackedChrome": {
+    "p0": 9,
+    "p1": 5,
+    "p2": 7,
+    "p3": 5,
+    "p4": 9,
+    "polish": 10
+  },
+  "archivedHostBrowser": 1,
+  "native": {
+    "P0": 9,
+    "P1": 10,
+    "P3": 7,
+    "P4.1": 4
+  },
+  "persistentProfileUpgrades": 2,
+  "systemKoreanIME": "passed",
+  "installation": "Chrome-only register-only upgrade with seven verified modules",
+  "isolatedUninstall": "removed formatter and owned modules and retained the owner file",
+  "localBOJFixtures": true,
+  "semanticScopesAndFormatting": "passed",
+  "powerAnimationFrames": 21
+}

@@ -1,6 +1,6 @@
 # Phase Roadmap
 
-Each phase ends at owner review. The reports record what passed and which checks remain open. P3.5 covers repository migration. P4 ends at the local review gate. P4.1 is being developed separately. Integration into the fork’s main branch and publication of local commits are deferred until P4.1 review and integration.
+The reports follow the development history from the original audit to the official fork’s integrated default branch. P4 delivered the final workspace, P4.1 added editor polish on its own branch, and P4.2 brought both verified commits together for the owner’s final review.
 
 | Phase | Scope | Suggested effort |
 | --- | --- | --- |
@@ -9,7 +9,9 @@ Each phase ends at owner review. The reports record what passed and which checks
 | [P2](docs/development/P2.md) | Monaco migration | High |
 | [P3](docs/development/P3.md) | clangd / LSP | Extra high |
 | [P3.5](docs/development/P3.5.md) | Official fork, history migration and documentation | High |
-| [P4 · local review](docs/development/P4.md) | Test cases, snippets, optional Power Mode, workspace UI, submission isolation and final verification | Extra high |
+| [P4](docs/development/P4.md) | Test cases, snippets, optional Power Mode, workspace UI, submission isolation and final verification | Extra high |
+| [P4.1](docs/development/P4.1.md) | Editor navigation, themes, local formatting and backup | High |
+| [P4.2](docs/development/P4.2.md) | Final integration, compatibility, performance, recovery and fork publication | Extra high |
 
 ## Mandatory BOJ account safety at every gate
 
@@ -47,4 +49,4 @@ Back up and restore-check the local history, including P3. Verify GitHub's fork 
 | Multiple submission tabs | Scope pending code, language, privacy, judge updates, focus return and cleanup to each problem tab and its managed form. Promote the existing expected failure to a passing fixture test. Open both forms, interleave results, close one early and confirm the other survives. Include two origins on the same problem. Use local fixtures for the entire sequence. |
 | Installation, performance and regressions | Run the P0–P3 suites and the new P4 cases in unpacked Windows Chrome. Check MSVC, GCC, Python, clangd, the missing/old-host paths and consent for Wandbox with doubles. Exercise install, upgrade, uninstall, service-worker suspension, native crashes, navigation and sustained use. Compare startup, cache reuse, completion latency, memory and process cleanup with the recorded baselines. Verify the package, extension identity, third-party notices and reproducible assets. |
 
-The final review includes the evidence, installation and recovery steps, and remaining limitations. Authenticated BOJ submission and the external Git integration can be checked only during ordinary owner-initiated problem solving. Release publication requires separate approval.
+The final integration report contains the installation and recovery steps, measurements, visual evidence and remaining limitations. Authenticated BOJ submission and the external Git integration can be checked only during ordinary owner-initiated problem solving. Release publication requires separate approval.
