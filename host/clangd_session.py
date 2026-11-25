@@ -13,7 +13,7 @@ from clangd_tools import discover, uses_gnu_headers
 from process_tree import Control, Tree
 from workspace import reclaim_abandoned, workspace
 
-FEATURES = {'completion', 'signatureHelp', 'hover', 'definition'}
+FEATURES = {'completion', 'signatureHelp', 'hover', 'definition', 'documentSymbol', 'documentHighlight'}
 SCHEMAS = {'analysis-open': {'code', 'version', 'standard'}, 'analysis-change': {'code', 'version'},
            'analysis-request': {'id', 'feature', 'position', 'version'}, 'analysis-cancel': {'id'},
            'analysis-close': set()}
@@ -27,6 +27,8 @@ def valid(msg):
     if not isinstance(msg, dict) or not isinstance(msg.get('type'), str):
         return False
     fields = SCHEMAS.get(msg['type'])
+    if msg['type'] == 'analysis-request' and msg.get('feature') == 'documentSymbol':
+        fields = fields - {'position'}
     if fields is None or msg.keys() != fields | {'type'}:
         return False
     if 'version' in fields and not integer(msg['version'], 1) or 'id' in fields and not integer(msg['id'], 1):
@@ -42,6 +44,8 @@ def valid(msg):
             return False
     if 'standard' in fields and (not isinstance(msg['standard'], str) or not re.fullmatch(r'(gnu|c)\+\+(98|03|11|14|17|20|23|2c)', msg['standard'])):
         return False
+    if 'feature' in fields and 'position' not in fields:
+        return msg['feature'] == 'documentSymbol'
     if 'feature' in fields:
         pos = msg['position']
         return (isinstance(msg['feature'], str) and msg['feature'] in FEATURES and isinstance(pos, dict)
@@ -114,7 +118,41 @@ def definition(locations, uri, roots):
             continue
 
 
+def document_symbols(items, uri):
+    """Flatten only this document's symbols, preserving containment and UTF-16 ranges."""
+    out = []
+    def visit(nodes, parent, depth):
+        if not isinstance(nodes, list) or depth > 12:
+            return
+        for item in nodes[:256]:
+            if len(out) == 256:
+                return
+            if not isinstance(item, dict):
+                continue
+            loc = item.get('location', {})
+            if not isinstance(loc, dict) or loc and loc.get('uri') != uri:
+                continue
+            span = item.get('range') or loc.get('range')
+            sel = item.get('selectionRange') or span
+            name = excerpt(item.get('name'), 120)
+            kind = item.get('kind')
+            if not name or not integer(kind, 1) or kind > 26 or not lsp_range(span) or not lsp_range(sel):
+                continue
+            index = len(out)
+            out.append(dict(name=name, kind=kind, parent=parent, range=span, selectionRange=sel))
+            visit(item.get('children'), index, depth + 1)
+    visit(items, -1, 0)
+    return out
+
+
 def result_for(feature, result, uri, roots):
+    if feature == 'documentSymbol':
+        return document_symbols(result, uri)
+    if feature == 'documentHighlight':
+        if not isinstance(result, list):
+            return []
+        return [dict(range=item['range'], kind=item.get('kind', 1)) for item in result[:512]
+                if isinstance(item, dict) and lsp_range(item.get('range')) and item.get('kind', 1) in (1, 2, 3)]
     if not result:
         return None
     if feature == 'definition':
@@ -158,6 +196,7 @@ class Session:
         self.lock = threading.RLock()
         self.control = Control()
         self.pending = {}
+        self.features = []
         self.tree = None
         self.opened = self.ready = self.closing = False
         self.last_id = 0
@@ -203,7 +242,8 @@ class Session:
                 stderr.start()
                 try:
                     caps = dict(general={'positionEncodings': ['utf-16']}, offsetEncoding=['utf-16'],
-                                textDocument=dict(publishDiagnostics={'versionSupport': True},
+                                textDocument=dict(documentSymbol={'hierarchicalDocumentSymbolSupport': True},
+                                    publishDiagnostics={'versionSupport': True},
                                     completion={'completionItem': {'snippetSupport': True}},
                                     signatureHelp={'signatureInformation': {'parameterInformation': {'labelOffsetSupport': True}}},
                                     hover={'contentFormat': ['plaintext']}))
@@ -240,6 +280,7 @@ class Session:
                 caps = (msg.get('result') or {}).get('capabilities', {})
                 if not caps.get('completionProvider') or caps.get('positionEncoding', 'utf-16') != 'utf-16':
                     raise ValueError('Incompatible language server')
+                self.features = [key for key in ('documentSymbol', 'documentHighlight') if caps.get(key + 'Provider') is not None and caps.get(key + 'Provider') is not False]
                 self.notify('initialized', {})
                 self.notify('textDocument/didOpen', {'textDocument': dict(uri=self.uri, languageId='cpp', version=self.version, text=self.text)})
                 self.opened = True
@@ -253,7 +294,7 @@ class Session:
                     raise ValueError('Initial parse failed')
                 else:
                     self.ready = True
-                    self.send(dict(type='analysis-ready', family=self.family))
+                    self.send(dict(type='analysis-ready', family=self.family, features=self.features))
             elif method == 'textDocument/publishDiagnostics':
                 p = msg['params']
                 if p.get('uri') == self.uri and p.get('version') == self.version:
@@ -292,8 +333,10 @@ class Session:
                     return
                 self.last_id = request
                 self.pending[request] = (self.version, msg['feature'])
-                self.packet(id=request, method='textDocument/' + msg['feature'],
-                            params={'textDocument': {'uri': self.uri}, 'position': msg['position']})
+                params = {'textDocument': {'uri': self.uri}}
+                if 'position' in msg:
+                    params['position'] = msg['position']
+                self.packet(id=request, method='textDocument/' + msg['feature'], params=params)
 
     def close(self):
         with self.lock:

@@ -1,0 +1,79 @@
+{
+  "chrome": "158.0.8127.37",
+  "layout": "0412",
+  "initialMode": "Latin",
+  "inputMethod": "EditContext",
+  "keys": "gksrmf + Space",
+  "preedit": "하",
+  "text": "한글 ",
+  "events": [
+    {
+      "type": "compositionstart",
+      "text": "ㅎ",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "ㅎ",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "하",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "한",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "한",
+      "trusted": true
+    },
+    {
+      "type": "compositionend",
+      "text": "한",
+      "trusted": true
+    },
+    {
+      "type": "compositionstart",
+      "text": "ㄱ",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "ㄱ",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "그",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "글",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": "글",
+      "trusted": true
+    },
+    {
+      "type": "compositionend",
+      "text": "글",
+      "trusted": true
+    },
+    {
+      "type": "textupdate",
+      "text": " ",
+      "trusted": true
+    }
+  ],
+  "ctrlS": "workspace saved",
+  "ctrlF": "editor find",
+  "ctrlH": "editor replace"
+}

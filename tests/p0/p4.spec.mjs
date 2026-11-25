@@ -32,6 +32,9 @@ test('upstream records, selected and batch results, per-problem tabs, concurrent
   await p.screenshot({ path: t.outputPath('light-cases.png') });
   await p.getByRole('button', { name: '▶ 선택 실행' }).click();
   await expect(p.locator('.tdiff-note')).toContainText('2번째 줄');
+  await p.locator('.tdiff-note').evaluate(el => el.scrollIntoView({ block: 'start' }));
+  await expect(p.locator('.tdiff tr.bad').first()).toBeInViewport();
+  await p.screenshot({ path: t.outputPath('output-diff.png') });
   await expect(p.locator('.tdiff tr.bad')).toContainText('n ext');
   await p.locator('.case-raw summary').click();
   expect(await p.locator('.case-raw pre').allTextContents()).toEqual(['3  5\n','abc\nn ext\n','abc \t\r\nnext\n','']);
@@ -75,8 +78,10 @@ test('a full collection runs across the native message boundary in saved order',
   await native(lab, Array(64).fill(''));
   await lab.worker.evaluate(() => chrome.storage.local.set({ 'cases:1000': Array.from({length:64}, (_,i) =>
     ({ id:'c' + i, input:'custom ' + i, expected:'', compare:true, on:true })) }));
+  await lab.worker.evaluate(() => chrome.storage.sync.set({ sampleTimeLimit: 7 }));
   const p = await problem(lab); await openPanel(p); await p.locator('.cboj-toolbar .run').click();
-  await expect.poll(() => lab.worker.evaluate(() => self.fixtureIO.nativeCalls.filter(m => m.type === 'batch').map(m => m.inputs.length))).toEqual([64,2]);
+  await expect.poll(() => lab.worker.evaluate(() => self.fixtureIO.nativeCalls.filter(m => m.type === 'batch')
+    .map(m => [m.inputs.length, m.timeLimit]))).toEqual([[64, 7], [2, 7]]);
   await expect(p.locator('.cboj-status')).toHaveText('테스트 64/66');
 });
 test('direct Wandbox fixture execution preserves stdout, stderr and status', async ({ lab }) => {
@@ -119,7 +124,7 @@ test('Power Mode, reduced motion, sustained typing, layout and actual demonstrat
   await cases(p); await p.screenshot({ path: t.outputPath('workspace-1280-light.png') });
   await settings.locator('label.toggle').filter({ has: settings.locator('[data-key=powerMode]') }).click(); await settings.locator('#effect').selectOption('aurora');
   await settings.locator('#intensity').selectOption('high'); await settings.locator('label.toggle').filter({ has: settings.locator('[data-key=powerShake]') }).click();
-  await settings.locator('[data-key=editorTheme] [data-v=dark]').click();
+  await settings.locator('select[data-key=editorTheme]').selectOption('dark');
   await expect(p.locator('#cboj-panel')).toHaveClass(/dark/);
   await editorInput(f).focus(); await loadCode(p, 'def running_total(values):\n    total = 0\n    for value in values:\n        total += value\n    return total\n\n# ');
   await mkdir(t.outputPath('frames'), { recursive: true });
@@ -247,7 +252,9 @@ test.describe('registered tools', () => {
     await lab.worker.evaluate(() => chrome.storage.local.set({ workspaceSnippets: { cpp: [{ id:'s', prefix:'zzloop', body:'for (int i = 0; i < ${1:5}; ++i) {$0}' }] },
       'draft:1000:cpp': { code: '#include <iostream>\nint main(){\n    zzlo\n}' }, runnerChoice: 'msvc',
       'cases:1000': [{ id:'real', input:'-4 7\n', expected:'3\n', on:true }] }));
+    await lab.worker.evaluate(() => chrome.storage.sync.set({ editorTheme: 'dracula', powerMode: true, powerPreset: 'aurora' }));
     const p = await problem(lab); await openPanel(p); const f = await editorFrame(p);
+    await expect.poll(() => f.evaluate(() => document.body.style.getPropertyValue('--bg') === CBOJ_PALETTES.dracula.base)).toBe(true);
     await expect(f.locator('#analysis-status')).toContainText('C++ 분석 · clangd', { timeout: 60000 });
     await f.evaluate(async () => { const v = (await import('/vendor/monaco/editor.js')).editor.getEditors()[0]; v.setPosition({ lineNumber:3,column:9 }); v.focus(); });
     await p.keyboard.press('Control+Space'); await expect(f.locator('.suggest-widget.visible')).toContainText('zzloop');
@@ -256,10 +263,13 @@ test.describe('registered tools', () => {
     await p.locator('[data-tab=problems]').click(); await p.locator('.problem-item').filter({ hasText:'missing_fixture_symbol' }).first().click();
     expect(await f.evaluate(async () => (await import('/vendor/monaco/editor.js')).editor.getEditors()[0].getPosition().column)).toBe(19);
     await loadCode(p, '#include <iostream>\nint main(){int a,b;std::cin>>a>>b;std::cout<<a+b;}');
+    await p.keyboard.press('Shift+Alt+f');
+    await expect.poll(() => frameValue(f)).toContain('int a, b;');
     await cases(p); await p.locator('[data-case=real]').click(); await p.getByRole('button', { name:'▶ 선택 실행' }).click();
     await expect(p.locator('.cboj-status')).toHaveText('테스트 통과', { timeout:45000 });
     await p.locator('.cboj-toolbar .run').click(); await expect(p.locator('.cboj-term-out')).toContainText('테스트 3개 모두');
     await expect(p.locator('.cboj-term-out')).toContainText('캐시 재사용');
+    await p.screenshot({ path: t.outputPath('integrated-execution.png') });
     await writeFile(t.outputPath('result.json'), JSON.stringify({ backend:'MSVC', realCases:3, cache:'hit' }));
   });
 });

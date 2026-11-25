@@ -162,6 +162,11 @@
   } catch { showRunner(null); }
 
   tplText.readOnly = true;
+  document.addEventListener('cboj-restored', async () => {
+    s = await ext.storage.sync.get(DEFAULTS);
+    runnerChoice.value = (await ext.storage.local.get({ runnerChoice: 'auto' })).runnerChoice;
+    render(); refreshDefault();
+  });
   if (ext) ext.storage.sync.get(DEFAULTS, (v) => {
     s = { ...DEFAULTS, ...v };
     settingsReady = true;

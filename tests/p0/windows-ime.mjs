@@ -14,7 +14,7 @@ const context = await chromium.launchPersistentContext('', {
   channel: 'chrome', headless: false, chromiumSandbox: true, executablePath: process.env.CBOJ_CHROME,
   ignoreDefaultArgs: ['--disable-extensions'], args: ['--enable-unsafe-extension-debugging', '--no-proxy-server', '--host-resolver-rules=MAP * ~NOTFOUND'],
 });
-let toggled = false, key;
+let toggled = false, key, modeProbe;
 try {
   const browser = await context.browser().newBrowserCDPSession();
   await browser.send('Extensions.loadUnpacked', { path: path.resolve(process.argv[2] || path.join(here, '../..')) });
@@ -31,6 +31,26 @@ try {
   const pid = (await browser.send('SystemInfo.getProcessInfo')).processInfo.find(x => x.type === 'browser').id;
   key = action => promisify(execFile)(process.env.CBOJ_TEST_PYTHON || 'python',
     ['-B', path.join(here, 'windows-ime-input.py'), String(pid), title, action], { windowsHide: true });
+  // Check and select the Windows input mode before typing into the draft.
+  // Some desktops deliver delayed copy/paste keys when switching the Korean IME.
+  // The probe uses the same Chrome frame and input thread as the editor.
+  await frame.evaluate(() => {
+    const input = document.createElement('input');
+    input.id = 'ime-fixture-mode'; input.setAttribute('aria-label', 'IME fixture mode');
+    input.style.cssText = 'position:fixed;top:0;left:0;width:80px;z-index:1000';
+    document.body.append(input); input.focus();
+  });
+  modeProbe = frame.locator('#ime-fixture-mode');
+  await key('first');
+  const probeText = await modeProbe.inputValue();
+  assert.ok(['gk', '하'].includes(probeText), 'Could not identify the initial Korean input mode');
+  if (probeText === 'gk') {
+    await modeProbe.fill('');
+    await key('toggle'); toggled = true;
+    await key('first');
+    assert.ok((await modeProbe.inputValue()).endsWith('하'), 'The Korean layout did not start composing');
+  }
+  await editorInput(frame).focus();
   const inputMethod = await observeComposition(frame);
   await frame.evaluate(async () => {
     const { editor } = await import('/vendor/monaco/editor.js');
@@ -43,17 +63,6 @@ try {
   const stages = { initial: await value() };
   assert.equal(stages.initial, '');
   await key('first');
-  stages.first = await value();
-  if (stages.first === 'gk') {
-    await page.keyboard.press('Control+a');
-    await page.keyboard.press('Backspace');
-    stages.cleared = await value();
-    assert.equal(stages.cleared, '');
-    await key('toggle');
-    toggled = true;
-    stages.toggled = await value();
-    await key('first');
-  }
   const preedit = await value();
   assert.equal(preedit, '하', JSON.stringify({ inputMethod, stages, preedit, events: await frame.evaluate(() => window.testComposition),
     trace: await frame.evaluate(() => window.imeTrace) }));
@@ -62,7 +71,6 @@ try {
   const events = await frame.evaluate(() => window.testComposition);
   assert.ok(events.some(e => ['compositionupdate', 'textupdate'].includes(e.type) && e.trusted && e.text === '한'), JSON.stringify(events));
   assert.ok(events.some(e => e.type === 'compositionend'), JSON.stringify(events));
-  if (toggled) { await key('toggle'); toggled = false; }
   await key('save');
   await page.locator('.cboj-status').filter({ hasText: '저장했어요' }).waitFor({ timeout: 4000 });
   await key('find');
@@ -72,13 +80,17 @@ try {
   await key('replace');
   const replaceWidget = await frame.locator('.find-widget.visible .replace-part').isVisible();
   const history = context.pages().some(p => p.url().startsWith('chrome://history'));
-  const out = { chrome: context.browser().version(), layout: '0412', inputMethod, keys: 'gksrmf + Space', preedit, text: await value(), events,
+  const out = { chrome: context.browser().version(), layout: '0412', initialMode: probeText === 'gk' ? 'Latin' : 'Hangul', inputMethod, keys: 'gksrmf + Space', preedit, text: await value(), events,
     ctrlS: 'workspace saved', ctrlF: 'editor find', ctrlH: replaceWidget ? 'editor replace' : history ? 'Chrome History' : 'no replace widget' };
   if (history) await Promise.all(context.pages().filter(p => p.url().startsWith('chrome://history')).map(p => p.close()));
   await mkdir(path.join(here, 'measurements'), { recursive: true });
   await writeFile(path.join(here, 'measurements/windows-ime.json'), JSON.stringify(out, null, 2) + '\n');
   console.log(JSON.stringify(out));
+  assert.equal(out.ctrlH, 'editor replace');
 } finally {
-  if (toggled && key) await key('toggle').catch(() => {});
+  if (toggled && key) {
+    await modeProbe.focus().catch(() => {});
+    await key('toggle').catch(() => {});
+  }
   await context.close();
 }

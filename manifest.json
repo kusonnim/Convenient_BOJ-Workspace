@@ -36,14 +36,18 @@
         "https://acmicpc.net/problem/*"
       ],
       "js": [
+        "vendor/themes/palettes.js",
+        "shared/editor-settings.js",
         "shared/defaults.js",
         "shared/boj.js",
+        "content/compiler-diagnostics.js",
         "content/editor.js",
         "content/cases.js",
         "content/split.js"
       ],
       "css": [
-        "content/split.css"
+        "content/split.css",
+        "content/polish.css"
       ],
       "run_at": "document_idle"
     },

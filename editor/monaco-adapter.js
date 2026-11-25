@@ -2,6 +2,10 @@ import { editor, languages, Uri, cpp, python } from '../vendor/monaco/editor.js'
 import { setSnippets, snippetSuggestions } from './snippets.js';
 import { PowerMode } from './power-mode.js';
 import { CppAnalysis } from './cpp-analysis.js';
+import { Breadcrumbs } from './breadcrumbs.js';
+import { formatting } from './formatting.js';
+import { definitions } from '../vendor/themes/definitions.js';
+const registeredThemes = new Set();
 
 // Workers are created in this extension document's origin, with the default MV3 CSP.
 globalThis.MonacoEnvironment = {
@@ -92,7 +96,8 @@ export class MonacoWorkspace {
       this.view.onDidChangeCursorSelection(() => this.notify({ type: 'view', ...this.position() })),
       this.view.onDidScrollChange(() => this.notify({ type: 'view', ...this.position() })),
     ];
-    if (doc.language === 'cpp') this.analysis = new CppAnalysis(model, this.view, doc.standard, this.notify);
+    if (doc.language === 'cpp') this.analysis = new CppAnalysis(model, this.view, doc.standard, this.notify, () => this.crumbs?.refresh());
+    if (doc.language !== 'python') this.listeners.push(formatting(this.view, model));
     this.view.focus();
     return this.snapshot();
   }
@@ -105,10 +110,25 @@ export class MonacoWorkspace {
       this.effects ||= new PowerMode(this.view, this.container);
       this.effects.settings = settings;
     } else if (this.effects) { this.effects.dispose(); this.effects = null; }
-    document.body.dataset.theme = settings.theme;
-    editor.setTheme(settings.theme === 'dark' ? 'vs-dark' : 'vs');
+    const id = Object.hasOwn(definitions, settings.theme) ? settings.theme : 'light';
+    if (!registeredThemes.has(id)) {
+      editor.defineTheme('cboj-' + id, definitions[id]);
+      registeredThemes.add(id);
+    }
+    editor.setTheme('cboj-' + id);
+    CBOJ_POLISH.paint(document.body, id);
     this.model.updateOptions({ tabSize: 4, insertSpaces: settings.spaces });
-    this.view.updateOptions({ minimap: { enabled: settings.minimap } });
+    this.settings = CBOJ_POLISH.read(settings);
+    const s = this.settings;
+    this.view.updateOptions({
+      minimap: { enabled: settings.minimap }, fontFamily: s.editorFontFamily, fontSize: s.editorFontSize, lineHeight: s.editorLineHeight,
+      stickyScroll: { enabled: s.editorSticky, maxLineCount: 3, defaultModel: 'indentationModel' },
+      bracketPairColorization: { enabled: s.editorBrackets },
+      guides: { bracketPairs: s.editorBrackets, highlightActiveBracketPair: s.editorBrackets, bracketPairsHorizontal: s.editorBrackets ? 'active' : false },
+      wordWrap: s.editorWrap ? 'on' : 'off', occurrencesHighlight: s.editorOccurrences ? 'singleFile' : 'off',
+    });
+    if (s.editorBreadcrumbs && !this.crumbs) this.crumbs = new Breadcrumbs(this.view, this.doc.language, () => this.analysis);
+    if (!s.editorBreadcrumbs && this.crumbs) { this.crumbs.dispose(); this.crumbs = null; }
   }
 
   position() {
@@ -129,6 +149,8 @@ export class MonacoWorkspace {
     this.savedView = this.view.saveViewState();
     this.effects?.dispose();
     this.effects = null;
+    this.crumbs?.dispose();
+    this.crumbs = null;
     this.analysis?.dispose();
     this.analysis = null;
     for (const listener of this.listeners) listener.dispose();

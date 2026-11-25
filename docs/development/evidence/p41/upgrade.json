@@ -1,0 +1,32 @@
+[
+  {
+    "phase": "base",
+    "chrome": "158.0.8127.37",
+    "extensionId": "mabfdombglhmfnjklbnoglebinejifdi",
+    "source": "f5fd0b4"
+  },
+  {
+    "phase": "polish",
+    "dark": true,
+    "minimap": true,
+    "spaces": true,
+    "code": "// 저장됨 🙂\r\nint main(){}",
+    "pos": {
+      "lineNumber": 2,
+      "column": 5
+    },
+    "wrap": "off"
+  },
+  {
+    "phase": "restart",
+    "dark": true,
+    "minimap": true,
+    "spaces": true,
+    "code": "// 저장됨 🙂\r\nint main(){}",
+    "pos": {
+      "lineNumber": 2,
+      "column": 5
+    },
+    "wrap": "on"
+  }
+]

@@ -237,7 +237,7 @@ class Toolchains:
                 raise BuildError('standard', 'MSVC 실행은 C++17과 C++20을 지원해요. 다른 표준은 GCC를 선택해 주세요.')
             tool, env, version = self.msvc
             compiler = 'msvc'
-            flags = ['/nologo', '/EHsc', '/O2', '/utf-8', '/Zc:__cplusplus',
+            flags = ['/nologo', '/EHsc', '/O2', '/utf-8', '/diagnostics:column', '/Zc:__cplusplus',
                      '/std:' + MS_STANDARDS[standard], '/DONLINE_JUDGE', '/DBOJ']
             args = [*flags, '/sourceDependencies', 'deps.json', src, '/Fe' + exe.name]
             shown = 'cl ' + ' '.join([*flags, src])
@@ -249,6 +249,9 @@ class Toolchains:
                 raise BuildError('nocompiler', compiler + ' 컴파일러를 찾지 못했어요.')
             env, version = self.env, self.gcc_versions[compiler]
             flags = ['-O2', '-std=' + standard, '-DONLINE_JUDGE', '-DBOJ']
+            gcc_version = re.search(r'\b(\d+)\.\d+(?:\.\d+)?\b', version or '')
+            if gcc_version and int(gcc_version[1]) >= 11:
+                flags += ['-fdiagnostics-column-unit=byte', '-fdiagnostics-color=never']
             args = [*flags, '-MD', '-MT', 'target', '-MF', 'main.d', src]
             if interactive:
                 # A single MinGW driver invocation for both source files can
@@ -286,9 +289,14 @@ class Toolchains:
         try:
             output = compile_step(tool, args, work, env, control, shown)
         except BuildError as error:
-            if error.code == 'compile' and msvc and ('bits/stdc++.h' in code or '__int128' in code):
-                hint = 'MSVC에서 GNU 전용 헤더와 형식을 지원하지 않을 수 있어요. GCC로 실행하거나 표준 C++ 코드를 사용해 주세요.'
-                raise BuildError('compile', str(error) + '\n' + hint, shown) from error
+            if error.code == 'compile' and msvc:
+                hints = []
+                if re.search(r'(?:bits[/\\]stdc\+\+\.h|ext[/\\]pb_ds[/\\])', str(error)):
+                    hints.append('GNU libstdc++ 전용 헤더예요. GCC로 실행하거나 필요한 표준 헤더를 포함해 주세요.')
+                if re.search(r'\b__int128\b', str(error)):
+                    hints.append('MSVC x64는 __int128 정수형을 지원하지 않아요. 128비트가 필요하면 지원하는 GCC 대상을 선택해 주세요.')
+                if hints:
+                    raise BuildError('compile', str(error) + '\n' + '\n'.join(hints), shown) from error
             raise
         # cl prints the source name even when it has emitted no diagnostics.
         warnings = '\n'.join(line for line in output.splitlines() if line.strip() != src)

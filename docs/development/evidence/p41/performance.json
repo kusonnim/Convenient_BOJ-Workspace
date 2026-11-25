@@ -1,0 +1,50 @@
+{
+  "chrome": "158.0.8127.37",
+  "profilesPerRevision": 3,
+  "fixtureLines": 400,
+  "keysPerProfile": 24,
+  "typingMethod": "Dispatch through next iframe animation frame, pooled across profiles; nearest-rank p95.",
+  "heapMethod": "Runtime.getHeapUsage usedSize of page plus extension iframe immediately after focus, KiB.",
+  "base": {
+    "startupMs": [
+      494,
+      414,
+      459
+    ],
+    "startupMedianMs": 459,
+    "heapKiB": [
+      15032,
+      14945,
+      14920
+    ],
+    "heapMedianMiB": 14.595,
+    "keyMedianMs": 16.75,
+    "keyP95Ms": 28.1,
+    "closedViewsModelsWorkers": [
+      0,
+      0,
+      0
+    ]
+  },
+  "p41": {
+    "startupMs": [
+      473,
+      558,
+      519
+    ],
+    "startupMedianMs": 519,
+    "heapKiB": [
+      15836,
+      15772,
+      15845
+    ],
+    "heapMedianMiB": 15.465,
+    "keyMedianMs": 16.7,
+    "keyP95Ms": 27.3,
+    "closedViewsModelsWorkers": [
+      0,
+      0,
+      0
+    ]
+  }
+}

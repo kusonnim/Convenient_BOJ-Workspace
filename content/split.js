@@ -346,8 +346,15 @@
   function line(kind, text) {
     return h('div', { class: 'tl ' + kind, text });
   }
-  function block(title, body, kind = '') {
+  function diagnosticOrigin() {
+    return { generation: editor.generation, revision: editor.revision, file: currentInfo().kind === 'cpp' ? 'main.cpp' : 'main.c' };
+  }
+  function block(title, body, kind = '', origin) {
     const pre = h('pre', { class: 'tb ' + kind, text: body === '' ? '(비어 있음)' : body });
+    if (origin) globalThis.cbojCompilerDiagnostics(pre, body, origin, (source, location) => {
+      if (editor.generation === source.generation && editor.revision === source.revision) editor.send('reveal', location);
+      else setStatus('코드가 변경됐어요. 다시 실행해 주세요.', 'err');
+    });
     return h('div', { class: 'tblock' }, h('div', { class: 'tbt', text: title }), pre);
   }
   function termAppend(...nodes) {
@@ -522,7 +529,7 @@
       const tool = compiler === 'msvc' ? 'MSVC x64 ' + runner.info.msvc : (kind === 'python' ? 'Python ' + runner.info.python : runner.info[kind === 'c' ? 'gcc' : 'gpp']);
       text = '● 내 PC · ' + (compiler === 'msvc' ? 'MSVC' : compiler); cls = 'local';
       title = `내 PC에서 실행해요 (${tool}). 아래 칸에서 터미널처럼 입력을 주고받을 수 있어요.`;
-      if (runner.info.protocol !== 2) title += ' 이전 도우미예요. MSVC와 캐시는 host/install.bat로 업데이트해 주세요.';
+      if (runner.info.protocol !== 2) title += ' 이전 도우미예요. MSVC, 캐시, 터미널 시간 제한은 host/install.bat로 업데이트해 주세요.';
     } else if (runner.state === 'on') {
       text = '● 컴파일러 없음'; cls = 'remote';
       title = '선택한 컴파일러를 사용할 수 없어요. 팝업에서 환경을 바꾸거나 host/install.bat로 도우미를 업데이트해 주세요.';
@@ -547,9 +554,11 @@
     await editor.flush();
     const info = currentInfo();
     const code = editor.doc.code;
+    const origin = diagnosticOrigin();
     const place = await executionPlace(epoch);
     if (place === 'cancel') return { cancelled: true };
     if (place === 'local') {
+      const timeLimit = settings.sampleTimeLimit;
       const groups = [[]], encoder = new TextEncoder();
       let bytes = 0;
       for (const input of inputs) {
@@ -559,20 +568,21 @@
         groups.at(-1).push(input);
         bytes += size;
       }
-      const out = { where: '내 PC', results: [] };
+      const out = { where: '내 PC', origin, results: [] };
       for (const group of groups) {
         if (batchStopped || epoch !== runEpoch) return { cancelled: true };
-        const r = await hostRequest({ type: 'batch', ...nativeOptions(), lang: info, code, inputs: group, timeLimit: 10 }, 'batch-result');
+        const r = await hostRequest({ type: 'batch', ...nativeOptions(), lang: info, code, inputs: group, timeLimit }, 'batch-result');
+        origin.unit = /\/diagnostics:column|-fdiagnostics-column-unit=byte/.test(r.cmd || '') ? 'utf8' : 'unknown';
         if (r.type === 'lost') return { fatal: r.message };
         if (r.error) {
           if (r.error.code === 'cancelled') return { cancelled: true };
-          if (r.error.code === 'compile') return { where: '내 PC', cmd: r.cmd && '$ ' + r.cmd, compileError: r.error.message };
+          if (r.error.code === 'compile') return { where: '내 PC', cmd: r.cmd && '$ ' + r.cmd, compileError: r.error.message, origin };
           return { fatal: r.error.message };
         }
         if (!out.cmd) { out.cmd = '$ ' + r.cmd + cacheNote(r); out.warnings = r.warnings; }
         for (const x of r.results.slice(0, group.length)) out.results.push({
           stdout: String(x.stdout ?? ''), stderr: String(x.stderr ?? ''), ms: x.ms,
-          note: x.overLimit ? '출력 한도 초과' : x.timeout ? '시간 초과 (10초)' : (x.code ? `${x.note || '런타임 에러'} (종료 코드 ${x.code})` : ''),
+          note: x.overLimit ? '출력 한도 초과' : x.timeout ? `시간 초과 (${timeLimit}초)` : (x.code ? `${x.note || '런타임 에러'} (종료 코드 ${x.code})` : ''),
         });
       }
       return out;
@@ -674,11 +684,11 @@
       setStatus('실행 실패', 'err');
     } else if (out.compileError != null) {
       if (out.cmd) termAppend(line('cmd', `${out.cmd}   [${out.where}]`));
-      termAppend(line('err', '✘ 컴파일 에러'), block('컴파일러 메시지', out.compileError.trimEnd(), 'err'));
+      termAppend(line('err', '✘ 컴파일 에러'), block('컴파일러 메시지', out.compileError.trimEnd(), 'err', out.origin));
       setStatus('컴파일 에러', 'err');
     } else {
       termAppend(line('cmd', `${out.cmd}   [${out.where}]`));
-      if (out.warnings) termAppend(block('컴파일 경고', out.warnings.trimEnd(), 'dim'));
+      if (out.warnings) termAppend(block('컴파일 경고', out.warnings.trimEnd(), 'dim', out.origin));
       let passed = 0, judged = 0, unjudgedErrors = 0;
       list.forEach((s, i) => {
         const res = out.results[i] || { stdout: '', stderr: '', note: '결과 없음' };
@@ -784,13 +794,13 @@
     const id = ++runner.seq;
     const initial = ui.termIn.value;
     ui.termIn.value = '';
-    live = { id, pre: h('pre', { class: 'tlive' }), pendingEcho: initial ? withNewline(initial) : '' };
+    live = { id, origin: diagnosticOrigin(), pre: h('pre', { class: 'tlive' }), pendingEcho: initial ? withNewline(initial) : '' };
     live.finished = new Promise(resolve => { live.finish = resolve; });
     termAppend(line('info', `${currentLang().name} · 터미널에서 실행 [내 PC]`));
     setLiveUI(true);
     setStatus('컴파일 중…', 'busy');
     runner.handlers.set(id, onLive);
-    try { port.postMessage({ type: 'run', id, ...nativeOptions(), lang: currentInfo(), code: editor.doc.code, stdin: live.pendingEcho, interactive: true }); }
+    try { port.postMessage({ type: 'run', id, ...nativeOptions(), lang: currentInfo(), code: editor.doc.code, stdin: live.pendingEcho, interactive: true, timeLimit: settings.terminalTimeLimit }); }
     catch { onLive({ type: 'lost', id, message: '도우미에 연결하지 못했어요.' }); }
   }
 
@@ -799,14 +809,15 @@
   function onLive(m) {
     if (!live || m.id !== live.id) return;
     if (m.type === 'compiled') {
+      live.origin.unit = /\/diagnostics:column|-fdiagnostics-column-unit=byte/.test(m.cmd || '') ? 'utf8' : 'unknown';
       if (!m.ok) {
         if (m.cmd) termAppend(line('cmd', '$ ' + m.cmd));
         if (m.code === 'nocompiler') termAppend(line('err', `✘ ${m.message} 도우미 설치 스크립트(install.bat)를 다시 실행하면 설치할 수 있어요.`));
-        else termAppend(line('err', '✘ 컴파일 에러'), block('컴파일러 메시지', String(m.message || '').trimEnd(), 'err'));
+        else termAppend(line('err', '✘ 컴파일 에러'), block('컴파일러 메시지', String(m.message || '').trimEnd(), 'err', live.origin));
         return;
       }
       termAppend(line('cmd', '$ ' + m.cmd + cacheNote(m)));
-      if (m.warnings) termAppend(block('컴파일 경고', m.warnings.trimEnd(), 'dim'));
+      if (m.warnings) termAppend(block('컴파일 경고', m.warnings.trimEnd(), 'dim', live.origin));
       termAppend(live.pre);
     } else if (m.type === 'start') {
       setStatus('● 실행 중', 'busy');
@@ -1093,16 +1104,28 @@
     }
   });
 
+  ext.runtime.onMessage.addListener((msg, sender, reply) => {
+    if (msg?.type !== 'cboj:backup-draft' || !['keys', 'snapshot'].includes(msg.mode)
+        || sender.id !== ext.runtime.id || sender.url !== ext.runtime.getURL('popup/popup.html')) return;
+    if (!initializing) { reply(null); return; }
+    if (!editor?.doc || !draftReady) { reply({ busy: true }); return; }
+    const generation = editor.generation, key = draftKey(currentInfo().family);
+    if (msg.mode === 'keys') { reply({ key }); return; }
+    editor.flush().then(() => reply(generation === editor.generation && draftReady
+      ? { key, value: { ...editor.snapshot(), at: Date.now() } } : { busy: true }), () => reply({ busy: true }));
+    return true;
+  });
+
   // ───────── 설정 ─────────
   function applySettings(s) {
-    settings = { ...DEFAULTS, ...s };
+    settings = { ...DEFAULTS, ...s, ...CBOJ_POLISH.read(s) };
     if (ui) {
       const alternative = settings.shortcutProfile === 'tests';
       ui.btnRun.title = alternative ? '전체 테스트 실행 (Ctrl+Shift+Enter)' : '전체 테스트 실행 (Ctrl+Enter)';
       ui.btnSubmit.title = alternative ? '제출 페이지 열기 (Ctrl+Shift+S)' : '제출 페이지 열기 (Ctrl+Shift+Enter)';
     }
-    editor?.configure({ theme: settings.editorTheme, spaces: !useTabs(), minimap: !!settings.editorMinimap, snippets, power: settings.powerMode === true, preset: settings.powerPreset, intensity: settings.powerIntensity, shake: settings.powerShake === true, keys: settings.shortcutProfile });
-    if (ui) ui.panel.classList.toggle('dark', settings.editorTheme === 'dark');
+    editor?.configure({ ...CBOJ_POLISH.read(settings), theme: settings.editorTheme, spaces: !useTabs(), minimap: !!settings.editorMinimap, snippets, power: settings.powerMode === true, preset: settings.powerPreset, intensity: settings.powerIntensity, shake: settings.powerShake === true, keys: settings.shortcutProfile });
+    if (ui) CBOJ_POLISH.paint(ui.panel, settings.editorTheme);
   }
   store.get('sync', DEFAULTS).then((s) => {
     applySettings(s);

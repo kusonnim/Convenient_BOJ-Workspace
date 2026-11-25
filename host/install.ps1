@@ -116,7 +116,7 @@ if ($gpp) { Write-Ok "g++: $gpp" }
 # 3) 도우미 복사·등록
 Write-Step '도우미 설치'
 New-Item -ItemType Directory -Force -Path $Dest | Out-Null
-foreach ($file in 'workspace.py', 'process_tree.py', 'toolchains.py', 'clangd_tools.py', 'clangd_session.py', 'cboj_host.py') {
+foreach ($file in 'workspace.py', 'process_tree.py', 'toolchains.py', 'clangd_tools.py', 'clangd_session.py', 'formatting.py', 'cboj_host.py') {
   Copy-Item -LiteralPath (Join-Path $Here $file) -Destination $Dest -Force
 }
 $bat = Join-Path $Dest 'cboj_host.bat'

@@ -1,3 +1,4 @@
+import './themes.mjs';
 import { build } from 'esbuild';
 import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';

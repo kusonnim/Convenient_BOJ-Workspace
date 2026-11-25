@@ -168,7 +168,7 @@ class Boundaries(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             dest = Path(tmp) / 'ConvenientBOJ'
             dest.mkdir()
-            for name in ('clangd_session.py', 'clangd_tools.py', 'workspace.py', 'owner-note.txt'):
+            for name in ('clangd_session.py', 'clangd_tools.py', 'workspace.py', 'formatting.py', 'owner-note.txt'):
                 (dest / name).write_text('fixture')
             # The uninstaller compares each existing registration's full
             # manifest path with this private directory before touching its key.

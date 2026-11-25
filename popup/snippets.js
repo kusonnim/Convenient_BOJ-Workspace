@@ -39,5 +39,9 @@
   }
   el('save').onclick = () => save(false);
   el('delete').onclick = () => { if (list.value && confirm('스니펫을 삭제할까요?')) save(true); };
-  chrome.storage.local.get('workspaceSnippets').then(v => { snippets = v.workspaceSnippets || {}; render(); });
+  function refresh() {
+    chrome.storage.local.get('workspaceSnippets').then(v => { snippets = v.workspaceSnippets || {}; render(list.value); });
+  }
+  document.addEventListener('cboj-restored', refresh);
+  refresh();
 })();

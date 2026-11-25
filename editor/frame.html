@@ -7,14 +7,21 @@
   <link rel="modulepreload" href="monaco-adapter.js">
   <link rel="stylesheet" href="../vendor/monaco/editor.css">
   <link rel="stylesheet" href="frame.css">
+  <link rel="stylesheet" href="polish.css">
 </head>
 <body>
+  <nav id="breadcrumbs" aria-label="기호 탐색 경로" hidden></nav>
+  <div id="symbol-list" role="group" aria-label="기호로 이동" hidden></div>
   <main id="editor" aria-label="코드 편집기"></main>
-  <output id="analysis-status" aria-live="polite" hidden></output>
+  <div id="analysis-bar"><output id="analysis-status" aria-live="polite" hidden></output>
+    <button id="analysis-retry" type="button" title="clangd 다시 연결" hidden>다시 연결</button></div>
+  <output id="format-status" aria-live="polite" hidden></output>
   <dialog id="header-preview" aria-labelledby="header-name">
     <header><strong id="header-name"></strong><button type="button" aria-label="정의 미리보기 닫기">닫기</button></header>
     <pre></pre>
   </dialog>
+  <script src="../vendor/themes/palettes.js"></script>
+  <script src="../shared/editor-settings.js"></script>
   <script type="module" src="frame.js"></script>
 </body>
 </html>

@@ -176,36 +176,35 @@ html.cboj-open .cboj-toggle.floating { display: none; }
   margin: 2px 0 6px; padding: 0; border: 0; background: none; color: var(--term-ink);
   font: inherit; white-space: pre-wrap; word-break: break-all; overflow: visible;
 }
-#cboj-panel .cboj-term-out pre.tlive .in { color: #98C379; }
-#cboj-panel .cboj-term-out pre.tlive .err { color: #E06C75; }
-#cboj-panel .cboj-term-out pre.tlive .dim { color: #7F848E; }
+#cboj-panel .cboj-term-out pre.tlive .in { color: var(--green); }
+#cboj-panel .cboj-term-out pre.tlive .err { color: var(--red); }
+#cboj-panel .cboj-term-out pre.tlive .dim { color: var(--muted); }
 #cboj-panel .cboj-term-in.live { border-color: #98C379; }
 #cboj-panel .cboj-btn.stop { background: var(--red); border-color: var(--red); color: #fff; }
 
 .cboj-term-out .tdiff-wrap { margin: 4px 0 10px; }
-.cboj-term-out .tdiff-note { color: #E5C07B; margin-bottom: 4px; }
+.cboj-term-out .tdiff-note { color: var(--amber); margin-bottom: 4px; }
 #cboj-panel .cboj-term-out table.tdiff {
   border-collapse: collapse; width: 100%; font: inherit; table-layout: fixed;
-  border: 1px solid #2C313A; background: #262A31;
+  border: 1px solid var(--line); background: var(--bg2); color: var(--ink);
 }
 #cboj-panel .cboj-term-out table.tdiff th {
-  text-align: left; font-weight: 600; color: #7F848E; padding: 3px 8px; border-bottom: 1px solid #2C313A;
+  text-align: left; font-weight: 600; color: var(--muted); padding: 3px 8px; border-bottom: 1px solid var(--line);
 }
 #cboj-panel .cboj-term-out table.tdiff th:first-child, #cboj-panel .cboj-term-out table.tdiff td.ln { width: 58px; }
 #cboj-panel .cboj-term-out table.tdiff td {
   padding: 1px 8px; vertical-align: top; white-space: pre-wrap; word-break: break-all; border: 0;
 }
-#cboj-panel .cboj-term-out table.tdiff td.ln { color: #5C6370; text-align: right; }
-#cboj-panel .cboj-term-out table.tdiff tr.bad td { background: rgba(224, 108, 117, .16); color: #F0A3A9; }
-#cboj-panel .cboj-term-out table.tdiff tr.bad td.ln { color: #E06C75; font-weight: 700; }
-#cboj-panel .cboj-term-out table.tdiff td.none { color: #5C6370; font-style: italic; }
-#cboj-panel .cboj-term-out table.tdiff tr.gap td { color: #5C6370; }
+#cboj-panel .cboj-term-out table.tdiff td.ln { color: var(--muted); text-align: right; }
+#cboj-panel .cboj-term-out table.tdiff tr.bad td { background: color-mix(in srgb, var(--red) 8%, var(--bg2)); color: var(--ink); }
+#cboj-panel .cboj-term-out table.tdiff tr.bad td.ln { color: var(--red); font-weight: 700; }
+#cboj-panel .cboj-term-out table.tdiff td.none { color: var(--muted); font-style: italic; }
+#cboj-panel .cboj-term-out table.tdiff tr.gap td { color: var(--muted); }
 #cboj-panel { --muted: #586574; box-shadow: none; container-type: inline-size; }
 #cboj-panel.dark { --muted: #abb3bf; --blue: #71b9eb; }
 #cboj-panel .cboj-toolbar { padding: 5px 8px; gap: 4px; }
 #cboj-panel .cboj-btn, #cboj-panel .cboj-lang, #cboj-panel .cboj-icon { border-radius: 3px; }
 #cboj-panel .cboj-btn.submit { background: var(--bg); color: var(--ink); border-color: var(--line); padding: 0 9px; }
-#cboj-panel .cboj-btn.run { background: #256742; border-color: #256742; }
 #cboj-panel .cboj-tabs { gap: 2px; min-height: 32px; flex: none; padding: 0 4px; overflow-x: auto; }
 #cboj-panel .cboj-tab { white-space: nowrap; padding: 6px 7px; }
 #cboj-panel .panel-tool { width: 25px; height: 27px; flex: none; }
@@ -230,7 +229,7 @@ html.cboj-open .cboj-toggle.floating { display: none; }
 #cboj-panel .case-io textarea, #cboj-panel .case-meta input:not([type=checkbox]) { display: block; width: 100%; background: var(--bg2); color: var(--ink); border: 1px solid var(--line); border-radius: 2px; padding: 4px 6px; font: 13px/1.4 Consolas, monospace; }
 #cboj-panel .case-io textarea { min-height: 50px; resize: vertical; margin-top: 3px; }
 #cboj-panel .case-meta input:not([type=checkbox]) { width: 110px; }
-#cboj-panel .case-raw { color: #afbbc9; font-size: 12px; }
+#cboj-panel .case-raw { color: var(--muted); font-size: 12px; }
 #cboj-panel .case-raw pre { white-space: pre-wrap; color: inherit; background: transparent; }
 #cboj-panel :focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 @container (max-width: 480px) {

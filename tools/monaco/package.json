@@ -2,9 +2,12 @@
   "name": "convenient-boj-editor-build",
   "private": true,
   "type": "module",
-  "scripts": { "build": "node build.mjs" },
+  "scripts": {
+    "build": "node build.mjs"
+  },
   "devDependencies": {
     "esbuild": "0.28.2",
-    "monaco-editor": "0.58.0"
+    "monaco-editor": "0.58.0",
+    "tm-themes": "1.12.12"
   }
 }

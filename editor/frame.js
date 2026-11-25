@@ -27,8 +27,20 @@ async function start() {
       if (m.type === 'suspend') state = workspace.suspend();
       if (m.type === 'read') state = workspace.snapshot();
       if (m.type === 'config') workspace.configure(m.settings);
-      if (m.type === 'jump' && workspace.view && Number.isSafeInteger(m.line) && Number.isSafeInteger(m.column)) {
-        const pos = workspace.model.validatePosition({ lineNumber: m.line, column: m.column });
+      if (['jump', 'reveal'].includes(m.type) && workspace.view && Number.isSafeInteger(m.line) && Number.isSafeInteger(m.column)
+          && m.line >= 1 && m.line <= workspace.model.getLineCount() && m.column >= 1) {
+        const text = workspace.model.getLineContent(m.line);
+        let column = 1;
+        if (m.type === 'jump') column = m.column;
+        else if (m.unit === 'utf8') {
+          const encoder = new TextEncoder();
+          let bytes = 1;
+          for (const ch of text) {
+            if (bytes >= m.column) break;
+            bytes += encoder.encode(ch).length; column += ch.length;
+          }
+        } else if (/^[\x20-\x7e]*$/.test(text)) column = m.column;
+        const pos = workspace.model.validatePosition({ lineNumber: m.line, column });
         workspace.view.setPosition(pos); workspace.view.revealPositionInCenterIfOutsideViewport(pos); workspace.view.focus();
       }
       if (m.type === 'focus') workspace.view?.focus();
@@ -57,6 +69,14 @@ async function start() {
   addEventListener('pagehide', dispose, { once: true });
   addEventListener('keydown', e => {
     if (!e.isTrusted || e.isComposing || e.keyCode === 229 || !workspace?.view || workspace.view.inComposition) return;
+    if (workspace.view.hasTextFocus() && e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyZ') {
+      e.preventDefault(); e.stopImmediatePropagation();
+      const wrap = !workspace.settings.editorWrap;
+      workspace.settings.editorWrap = wrap;
+      workspace.view.updateOptions({ wordWrap: wrap ? 'on' : 'off' });
+      chrome.storage.sync.set({ editorWrap: wrap }).catch(console.error);
+      return;
+    }
     let action;
     if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyC') action = 'toggle';
     if (e.key === 'Escape') { notify({ type: 'action', action: 'unfocus' }); return; }

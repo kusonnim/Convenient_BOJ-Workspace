@@ -1,6 +1,5 @@
 // Apply small mutations in the worker so two problem tabs cannot lose each other's cases.
 const caseStorage = (() => {
-  let queue = Promise.resolve();
   const idOK = id => typeof id === 'string' && /^[a-z0-9-]{1,80}$/i.test(id);
   async function change(m, sender) {
     if (!problemSender(sender) || new URL(sender.url).pathname.replace(/\/$/, '') !== '/problem/' + m.pid || !idOK(m.id)) return { ok: false };
@@ -33,8 +32,7 @@ const caseStorage = (() => {
     return { ok: true };
   }
   return (m, sender) => {
-    const next = queue.then(() => change(m, sender));
-    queue = next.catch(() => {});
-    return next.catch(error => ({ ok: false, error: error.message }));
+    return navigator.locks.request('cboj-cases', () => change(m, sender))
+      .catch(error => ({ ok: false, error: error.message }));
   };
 })();

@@ -1,0 +1,87 @@
+{
+  "packages": {
+    "monaco-editor": "0.58.0",
+    "esbuild": "0.28.2",
+    "tm-themes": "1.12.12"
+  },
+  "offlineRebuild": "byte-identical",
+  "matchingManifestFields": [
+    "key",
+    "permissions",
+    "host_permissions",
+    "web_accessible_resources",
+    "content_security_policy"
+  ],
+  "assets": [
+    {
+      "file": "vendor/monaco/codicon.ttf",
+      "bytes": 154520,
+      "sha256": "64027d2f24db48f81abe77f68c82e6aa70ee50e4827e1b6c3dd2b99170100a14"
+    },
+    {
+      "file": "vendor/monaco/Codicons-NOTICE.txt",
+      "bytes": 236,
+      "sha256": "f3d981b892fd557ffa0f6b82e7b7cef39f9eb47b29b29091282e419288fa99ea"
+    },
+    {
+      "file": "vendor/monaco/DOMPurify-APACHE.txt",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "file": "vendor/monaco/DOMPurify-MPL.txt",
+      "bytes": 16726,
+      "sha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85"
+    },
+    {
+      "file": "vendor/monaco/editor.css",
+      "bytes": 161720,
+      "sha256": "cfb20a121b490e7a99522eba6f5b7274b35a37a67c16d8685a0e9572770b22ea"
+    },
+    {
+      "file": "vendor/monaco/editor.js",
+      "bytes": 3617544,
+      "sha256": "b414cb9b92f3d7db1d9a9d178218489124939051c440c5b5d0ce5d42dfbe61bd"
+    },
+    {
+      "file": "vendor/monaco/editor.worker.js",
+      "bytes": 345725,
+      "sha256": "1f172ba3f49eb3ef72054f03aa43c60a6841302d27147f28ceada432a70640fa"
+    },
+    {
+      "file": "vendor/monaco/LICENSE",
+      "bytes": 1098,
+      "sha256": "33e4ff1a06ef62ba21788ea162564ee8165269a24a9ce6ef301837447eab0ac6"
+    },
+    {
+      "file": "vendor/monaco/Marked-LICENSE.txt",
+      "bytes": 2942,
+      "sha256": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c"
+    },
+    {
+      "file": "vendor/monaco/ThirdPartyNotices.txt",
+      "bytes": 63064,
+      "sha256": "790537262fc78a764e121e6b92b959bcd3f5c310b47d9d9b9e92e17fe0af5336"
+    },
+    {
+      "file": "vendor/monaco/VSCode-Diff-LICENSE.txt",
+      "bytes": 1141,
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+    },
+    {
+      "file": "vendor/themes/definitions.js",
+      "bytes": 34286,
+      "sha256": "87fed7eec70222cca3de17dc19c9c128e3af2f8dcf7113d4810fba7da13d2961"
+    },
+    {
+      "file": "vendor/themes/NOTICE.txt",
+      "bytes": 9360,
+      "sha256": "7c24e91130cc7868d3486ced1bb9344cb735c0b37c47a467e7d3072a4e940432"
+    },
+    {
+      "file": "vendor/themes/palettes.js",
+      "bytes": 2321,
+      "sha256": "feee3804dd72da658396cad5217b5b8ea9d1e4657f0e22c88c29f6beb3f3f045"
+    }
+  ]
+}

@@ -23,7 +23,7 @@ const workdirs = async lab => (await readdir(lab.nativeTemp)).filter(n => n.star
 const finished = p => expect(p.locator('.cboj-toolbar .run')).toHaveText('▶ 실행');
 
 test('registered MSVC, samples, UTF-8, cache identity, diagnostics and explicit GCC', async ({ lab }, t) => {
-  const info = await lab.worker.evaluate(() => chrome.runtime.sendNativeMessage('com.convenient_boj.runner', { type: 'info', protocol: 2 }));
+  const info = await lab.worker.evaluate(name => chrome.runtime.sendNativeMessage(name, { type: 'info', protocol: 2 }), process.env.CBOJ_P41_HOST || 'com.convenient_boj.runner');
   expect(info).toMatchObject({ protocol: 2, version: '2.0.0', msvcStandards: ['c++17', 'c++20'] });
   expect(info.msvc).toMatch(/^\d+$/);
   const p = await problem(lab);

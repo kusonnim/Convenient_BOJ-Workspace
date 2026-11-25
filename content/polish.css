@@ -1,0 +1,15 @@
+#cboj-panel, #cboj-panel * { scrollbar-color: var(--muted) var(--bg); scrollbar-width: thin; }
+#cboj-panel .cboj-btn.run, #cboj-panel .cboj-btn.stop { color: var(--bg); }
+#cboj-panel .cboj-btn, #cboj-panel .cboj-lang, #cboj-panel .cboj-icon, #cboj-panel .cboj-term-in, #cboj-panel .cboj-card { border-radius: 3px; }
+#cboj-panel .cboj-btn:hover, #cboj-panel .cboj-term-in:focus { border-color: var(--blue); }
+#cboj-panel .cboj-term-out :is(.cmd, .dim, .tbt), #cboj-panel .cboj-term-actions .cboj-link { color: var(--muted); }
+#cboj-panel .cboj-term-out .info, #cboj-panel .cboj-res.ce { color: var(--blue); }
+#cboj-panel .cboj-term-out :is(.ok, .in), #cboj-panel .cboj-res.ac { color: var(--green); }
+#cboj-panel .cboj-term-out :is(.err, pre.tb.err), #cboj-panel .cboj-res:is(.wa,.pe,.tle,.mle,.ole,.rte) { color: var(--red); }
+#cboj-panel .cboj-term-out .warn, #cboj-panel .cboj-res.pac { color: var(--amber); }
+#cboj-panel .cboj-term-out pre.tb, #cboj-panel .cboj-term-in { background: var(--bg2); color: var(--ink); border-color: var(--line); }
+#cboj-panel .cboj-term-bar { border-color: var(--line); }
+#cboj-panel .cboj-term-in.live { border-color: var(--green); }
+#cboj-panel .cboj-resizer-x:hover, #cboj-panel .cboj-resizer-y:hover { background: var(--blue); }
+#cboj-panel .cboj-diagnostic { padding: 0; border: 0; background: transparent; color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+#cboj-panel :focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }

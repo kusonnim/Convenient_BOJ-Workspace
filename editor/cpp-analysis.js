@@ -14,12 +14,16 @@ const fallback = {
 let sequence = 0;
 
 export class CppAnalysis {
-  constructor(model, view, standard, notify) {
-    Object.assign(this, { model, view, standard, notify });
+  constructor(model, view, standard, notify, outlineChanged) {
+    Object.assign(this, { model, view, standard, notify, outlineChanged });
+    this.retryButton = document.getElementById('analysis-retry');
+    this.retryButton.onclick = () => { this.stop(); this.retries = 0; this.start(); };
+    this.features = [];
     this.status = document.getElementById('analysis-status');
     this.dialog = document.getElementById('header-preview');
     this.dialog.querySelector('button').onclick = () => this.dialog.close();
     this.status.hidden = false;
+    this.status.title = '점선 테두리: 같은 단어 · 채움: clangd가 찾은 기호';
     this.pending = new Map();
     this.providers = [];
     this.retries = this.lastId = 0;
@@ -48,6 +52,7 @@ export class CppAnalysis {
     this.ready = false;
     this.sentVersion = 0;
     this.timeouts = 0;
+    this.retryButton.hidden = true;
     this.status.textContent = 'C++ · clangd 연결 중';
     this.watchdog = setTimeout(() => this.lost(), 60000);
     this.flush();
@@ -93,7 +98,7 @@ export class CppAnalysis {
         if (++this.timeouts >= 2) this.lost();
       }, 12000);
       this.pending.set(id, { finish, cancel });
-      this.send('analysis-request', { id, feature, version, position: { line: position.lineNumber - 1, character: position.column - 1 } });
+      this.send('analysis-request', { id, feature, version, ...(position ? { position: { line: position.lineNumber - 1, character: position.column - 1 } } : {}) });
     });
   }
 
@@ -102,6 +107,8 @@ export class CppAnalysis {
     if (m.type === 'analysis-ready') {
       clearTimeout(this.watchdog);
       this.ready = true;
+      this.features = Array.isArray(m.features) ? m.features : [];
+      this.outlineChanged();
       this.status.textContent = 'C++ 분석 · clangd · ' + m.family;
       if (!this.view.inComposition && !this.providers.length) this.register();
     } else if (m.type === 'analysis-result') {
@@ -115,6 +122,7 @@ export class CppAnalysis {
     } else if (m.type === 'analysis-unavailable') {
       this.stop();
       this.status.textContent = fallback[m.reason] || fallback.lost;
+      this.retryButton.hidden = m.reason === 'size';
     } else if (m.type === 'analysis-reconfigure') {
       this.stop();
       this.start();
@@ -135,13 +143,25 @@ export class CppAnalysis {
     if (this.retries < 2) {
       this.retry = setTimeout(() => this.start(), 300 * ++this.retries);
       this.status.textContent = 'C++ · clangd 다시 연결 중';
-    }
+    } else this.retryButton.hidden = false;
   }
 
   register() {
     // Match this draft only. Read-only header excerpts and other models never
     // participate in this connection.
     const selector = { language: 'cpp', scheme: this.model.uri.scheme, pattern: this.model.uri.path };
+    if (this.features.includes('documentHighlight')) {
+      this.providers.push(languages.registerDocumentHighlightProvider(selector, {
+        provideDocumentHighlights: async (_model, pos, token) => {
+          const items = await this.request('documentHighlight', pos, token);
+          return items?.map(i => ({ range: range(i.range), kind: i.kind === 3
+            ? languages.DocumentHighlightKind.Write : languages.DocumentHighlightKind.Read }));
+        },
+      }));
+      // Re-evaluate a textual match already under the cursor when clangd becomes ready.
+      // Monaco excludes the textual provider from merged results when a semantic provider exists.
+      this.view.updateOptions({ occurrencesHighlightFromAllProviders: true });
+    }
     // Prefer the semantic provider without reconfiguring a focused editor or
     // its native IME. Disposing this provider restores P2 word/keyword results.
     this.providers.push(languages.registerCompletionItemProvider({ ...selector, exclusive: true }, {
@@ -203,7 +223,11 @@ export class CppAnalysis {
     this.clearRequests();
     if (this.active) this.send('analysis-close');
     this.active = this.ready = false;
+    this.features = [];
+    this.outlineChanged();
     for (const item of this.providers.splice(0)) item.dispose();
+    if (!this.disposed && !this.view.inComposition && this.view.getRawOptions().occurrencesHighlightFromAllProviders)
+      this.view.updateOptions({ occurrencesHighlightFromAllProviders: false });
     this.deferredDiagnostics = null;
     this.setMarkers([]);
     if (this.dialog.open) this.dialog.close();
@@ -217,6 +241,8 @@ export class CppAnalysis {
     this.change.dispose();
     this.compositionEnd.dispose();
     this.status.hidden = true;
+    this.retryButton.hidden = true;
+    this.retryButton.onclick = null;
     this.dialog.querySelector('button').onclick = null;
   }
 }

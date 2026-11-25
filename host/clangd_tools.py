@@ -16,6 +16,13 @@ def clangd_paths():
         return
     program = Path(os.environ['ProgramFiles'])
     yield program / 'LLVM/bin/clangd.exe'
+    local = Path(os.environ['LOCALAPPDATA'])
+    yield local / 'Programs/LLVM/bin/clangd.exe'
+    packages = local / 'Microsoft/WinGet/Packages'
+    for pattern in ('LLVM.LLVM*/bin/clangd.exe', 'LLVM.LLVM*/LLVM*/bin/clangd.exe'):
+        yield from sorted(packages.glob(pattern), reverse=True)
+    # clangd's VS Code extension also supports a non-versioned storage layout.
+    yield from (Path(os.environ['APPDATA']) / 'Code/User/globalStorage/llvm-vs-code-extensions.vscode-clangd/install').glob('clangd_*/bin/clangd.exe')
     for vs in vs_installations():
         yield vs / 'VC/Tools/Llvm/x64/bin/clangd.exe'
     # These IDE bundles are common on Windows even without a PATH entry.

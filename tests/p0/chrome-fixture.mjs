@@ -11,10 +11,10 @@ const packageFiles = ['manifest.json', 'background.js', 'content', 'editor', 'po
 
 // Only the two external endpoints of background.js are doubled. Chrome owns
 // both script worlds, storage, tab selection, runtime messages and tab ports.
-function installDoubles() {
+function installDoubles(hostName) {
   const io = self.fixtureIO = { native: null, nativeCalls: [], analysisCalls: [], remote: {}, remoteCalls: [] };
   chrome.runtime.connectNative = name => {
-    if (name !== 'com.convenient_boj.runner' || !io.native) throw Error('Fixture host unavailable');
+    if (name !== hostName || !io.native) throw Error('Fixture host unavailable');
     let deliver;
     return {
       onMessage: { addListener: fn => { deliver = fn; } },
@@ -53,13 +53,13 @@ export const test = base.extend({
   unpacked: [async ({}, use, workerInfo) => {
     const dir = path.join(workerInfo.project.outputDir, 'unpacked');
     await mkdir(dir, { recursive: true });
-    for (const file of packageFiles) await cp(path.join(root, file), path.join(dir, file), { recursive: true });
+    for (const file of packageFiles) await cp(path.join(process.env.CBOJ_P41_UNPACKED || root, file), path.join(dir, file), { recursive: true });
     await use(dir);
   }, { scope: 'worker' }],
 
   lab: [async ({ unpacked, realHost, backForwardCache }, use, testInfo) => {
     const nativeTemp = testInfo.outputPath('native-temp');
-    if (realHost) await mkdir(nativeTemp, { recursive: true });
+    await mkdir(nativeTemp, { recursive: true });
     const context = await chromium.launchPersistentContext('', {
       channel: 'chrome',
       executablePath: process.env.CBOJ_CHROME || undefined,
@@ -67,7 +67,7 @@ export const test = base.extend({
       chromiumSandbox: true,
       viewport: { width: 1280, height: 800 },
       deviceScaleFactor: 1,
-      env: realHost ? { ...process.env, TEMP: nativeTemp, TMP: nativeTemp, TMPDIR: nativeTemp } : undefined,
+      env: { ...process.env, TEMP: nativeTemp, TMP: nativeTemp, TMPDIR: nativeTemp },
       ignoreDefaultArgs: backForwardCache ? ['--disable-extensions', '--disable-back-forward-cache'] : ['--disable-extensions'],
       args: ['--enable-unsafe-extension-debugging', '--no-proxy-server', '--host-resolver-rules=MAP * ~NOTFOUND'],
     });
@@ -95,7 +95,7 @@ export const test = base.extend({
       const isWorker = w => w.url() === 'chrome-extension://' + id + '/background.js';
       const worker = context.serviceWorkers().find(isWorker)
         || await context.waitForEvent('serviceworker', { predicate: isWorker });
-      if (!realHost) await worker.evaluate(installDoubles);
+      if (!realHost) await worker.evaluate(installDoubles, process.env.CBOJ_P41_HOST || 'com.convenient_boj.runner');
       await use({ context, worker, nativeTemp });
       expect(badRequests).toEqual([]);
     } finally {

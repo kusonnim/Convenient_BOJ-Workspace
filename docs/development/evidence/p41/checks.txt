@@ -1,0 +1,108 @@
+P4.1 Windows verification
+Google Chrome 158.0.8127.37 with unpacked extension, disposable profiles and local fixtures.
+
+P4.1 Chrome
+PASS all eight popup themes, editor colors, original statement and saved personalization (11.1s)
+PASS real local tools › nested breadcrumbs, picking declarations, sticky scopes, guides and semantic reads (5.1s)
+PASS real local tools › explicit local C/C++ formatting and undo, MSVC/GCC diagnostic bytes and actual limits (16.5s)
+PASS real local tools › MSVC guidance follows the raw diagnostic for GNU headers and integer extensions (6.9s)
+PASS missing tools, text-only occurrences, manual reconnect and disabled contributions (1.2s)
+PASS local backup download, merge, open draft protection, invalid import and confirmed replacement (5.7s)
+PASS startup and typing 1 (1.3s)
+PASS startup and typing 2 (1.0s)
+PASS startup and typing 3 (1.2s)
+
+P0 Chrome
+PASS split toggle, statement identity and both persisted resize handles (1.1s)
+PASS old drafts, template cursor, language families and explicit save survive reload (2.9s)
+PASS popup saves a template for fresh problems and preserves the previous value on quota rejection (1.2s)
+PASS native batch UI distinguishes normalized pass, mismatch, compiler and runtime errors (1.4s)
+PASS missing host uses Wandbox fixtures for C, C++ and Python, including run-only samples (1.3s)
+PASS interactive input, composing Enter, separate stderr, EOF and stop use the same job ID (1.1s)
+PASS manual submit prefill, pending judge, focus return, final result and tab cleanup (4.9s)
+PASS unmanaged submit stays empty and closing the managed tab reports its lifecycle stage (3.9s)
+EXPECTED FAILURE two problem tabs can each keep a pending submission (4.2s)
+
+P1 Chrome
+PASS registered MSVC, samples, UTF-8, cache identity, diagnostics and explicit GCC (37.5s)
+PASS real terminal input, EOF, stop, simultaneous tabs and disconnect cleanup (28.7s)
+PASS batch stop and timeout release the registered runner for another job (26.7s)
+PASS host compatibility and user choice › old host offers repair and keeps GCC available (815ms)
+PASS host compatibility and user choice › missing compiler offers an explicit remote choice (881ms)
+
+P2 Chrome
+PASS mouse selection moves text, creates multiple cursors and edits a column (1.5s)
+PASS indentation, paired brackets, line actions, folding, find/replace and history (2.2s)
+PASS keyword and document completions, local worker, collapse/reopen and navigation cleanup (1.9s)
+PASS Korean browser composition, UTF-16 selection and old scroll/draft recovery (1.2s)
+PASS unedited legacy bytes, fast navigation and language-specific editing survive a round trip (1.9s)
+PASS browser history › Back restores the last edit and exactly one editable model (1.3s)
+PASS installed runner and appearance › Monaco C++ runs on local MSVC in light and dark themes (11.3s)
+
+P3 Chrome
+PASS registered language server › Wandbox selection, STL and user symbols, signatures, navigation, live UTF-16 errors and timing (15.2s)
+PASS registered language server › same-problem tabs, server crash, rapid edits and repeated close release all resources (41.9s)
+PASS registered language server › changing the draft cancels a real completion and rejects delayed native replies (4.3s)
+PASS registered language server › a missing-server capability preserves real MSVC execution (9.0s)
+PASS absent server and legacy host keep P2 editing, basic completion and runner routing (1.1s)
+
+P3.5 host with P4.1 editor
+PASS prior host › P3.5 completion works without the new capabilities (3.7s)
+
+Base timing
+PASS startup and typing 1 (1.6s)
+PASS startup and typing 2 (1.2s)
+PASS startup and typing 3 (1.2s)
+
+P4.1 timing
+PASS startup and typing 1 (1.1s)
+PASS startup and typing 2 (1.2s)
+PASS startup and typing 3 (1.3s)
+
+P0 native
+PASS test_batch_timeout
+PASS test_c_batch
+PASS test_compiler_diagnostic
+PASS test_cpp_batch
+PASS test_disconnect_during_interactive_run
+PASS test_info
+PASS test_interactive_input_eof_and_separate_streams
+PASS test_interactive_stop
+PASS test_python_output_and_runtime_error
+
+P1 native
+PASS test_cache_evicts_the_oldest_build
+PASS test_gnu_interactive_header_dependency
+PASS test_msvc_identity_and_dependencies
+PASS test_unavailable_msvc_and_unsupported_standard
+PASS test_p0_host_accepts_capability_probe_and_legacy_gcc_job
+PASS test_descendant_exits_after_normal_parent_return
+PASS test_descendants_on_disconnect
+PASS test_forced_host_exit_and_scoped_reclamation
+PASS test_interactive_timeout_and_output_bound
+PASS test_invalid_and_duplicate_requests_leave_port_usable
+
+P3 native
+PASS test_cancellation_and_late_packets
+PASS test_frames_and_fixed_schema
+PASS test_uninstall_removes_only_project_files
+PASS test_forced_native_exit_reclaims_its_server_and_workspace
+PASS test_gcc_headers
+PASS test_gnu_competitive_template
+PASS test_real_cpp
+
+P4.1 native
+PASS test_document_operations_have_exact_schemas
+PASS test_format_limits_fixed_options_and_unavailable_tool
+PASS test_real_formatting
+PASS test_symbol_hierarchy_bounds_and_file_filter
+
+Windows Korean IME
+PASS first profile, trusted EditContext composition, Ctrl+S / Ctrl+F / Ctrl+H.
+PASS second profile, trusted EditContext composition, Ctrl+S / Ctrl+F / Ctrl+H.
+
+Persistent-profile upgrade
+PASS Base to P4.1 and second Chrome restart. Observed states are in upgrade.json.
+
+Reproducible build
+PASS Offline npm ci and two builds produced the same 14 packaged assets. Hashes are in build.json.

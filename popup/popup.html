@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>Convenient BOJ</title>
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="polish.css">
 </head>
 <body>
   <header class="top">
@@ -32,10 +33,7 @@
       <input type="checkbox" data-key="splitAutoOpen"><i></i>
     </label>
     <div class="row">
-      <h2>에디터 테마</h2>
-      <div class="seg" data-key="editorTheme">
-        <button data-v="light">밝게</button><button data-v="dark">어둡게</button>
-      </div>
+      <label for="editor-theme">에디터 테마</label><select id="editor-theme" class="pick" data-key="editorTheme"></select>
     </div>
     <label class="toggle">
       <span><b>에디터 미니맵</b></span>
@@ -58,6 +56,20 @@
     </div>
   </section>
 
+  <details class="card polish-settings">
+    <summary>편집 및 실행 설정</summary>
+    <div class="row"><label for="edit-font">글꼴</label><input id="edit-font" data-polish="editorFontFamily" maxlength="160"></div>
+    <div class="row"><label for="edit-size">글자 크기 (px)</label><input id="edit-size" type="number" min="10" max="32" data-polish="editorFontSize"></div>
+    <div class="row"><label for="edit-height">줄 높이 (px)</label><input id="edit-height" type="number" min="12" max="56" data-polish="editorLineHeight"></div>
+    <label class="toggle"><span>자동 줄 바꿈 · Alt+Z</span><input type="checkbox" data-key="editorWrap"><i></i></label>
+    <label class="toggle"><span>고정 스크롤</span><input type="checkbox" data-key="editorSticky"><i></i></label>
+    <label class="toggle"><span>괄호 색 및 가이드</span><input type="checkbox" data-key="editorBrackets"><i></i></label>
+    <label class="toggle"><span>같은 기호 강조</span><input type="checkbox" data-key="editorOccurrences"><i></i></label>
+    <label class="toggle"><span>기호 탐색 경로</span><input type="checkbox" data-key="editorBreadcrumbs"><i></i></label>
+    <div class="row"><label for="sample-limit">테스트당 제한 (초)</label><input id="sample-limit" type="number" min="1" max="300" data-polish="sampleTimeLimit"></div>
+    <div class="row"><label for="term-limit">터미널 제한 (초)</label><input id="term-limit" type="number" min="1" max="300" data-polish="terminalTimeLimit"></div>
+    <p><a href="https://clangd.llvm.org/installation" target="_blank" rel="noopener noreferrer">clangd 설치 안내 ↗</a></p>
+  </details>
   <section class="card tpl">
     <div class="row">
       <h2>기본 코드</h2>
@@ -89,6 +101,12 @@
       <label class="toggle"><span>콤보 화면 흔들림</span><input type="checkbox" data-key="powerShake"><i></i></label>
     </div>
   </section>
+  <details class="card"><summary>초안·테스트·설정 백업</summary>
+    <div class="backup-controls"><button class="mini" id="backup-export">내보내기</button>
+      <select id="backup-policy" aria-label="복원 방식"><option value="keep">기존 값 유지</option><option value="replace">충돌 값 교체</option></select>
+      <button class="mini" id="backup-import">가져오기</button></div>
+    <input id="backup-file" type="file" accept=".json,application/json" hidden><output id="backup-status" aria-live="polite"></output>
+  </details>
   <section class="card keys">
     <div class="row"><label for="key-profile">단축키</label><select class="pick" id="key-profile" data-key="shortcutProfile"><option value="classic">기존</option><option value="tests">테스트 중심</option></select></div>
     <dl>
@@ -98,13 +116,19 @@
       <dt>Ctrl + Alt + Enter</dt><dd>선택 테스트</dd>
       <dt>Ctrl + Shift + X</dt><dd>중지</dd>
       <dt class="alternate" hidden>Ctrl + Shift + S</dt><dd class="alternate" hidden>제출 페이지 열기</dd>
+      <dt>Alt + Z</dt><dd>자동 줄 바꿈</dd>
+      <dt>Shift + Alt + F</dt><dd>clang-format · C/C++</dd>
       <dt>Ctrl + S</dt><dd>코드 저장</dd>
     </dl>
   </section>
   <p class="note">C는 GCC, Python은 로컬 Python으로 실행해요. MSVC는 C++17/20을 지원해요. 로컬 실행 시간은 백준 채점 시간과 다를 수 있어요.</p>
 
+  <script src="../vendor/themes/palettes.js"></script>
+  <script src="../shared/editor-settings.js"></script>
   <script src="../shared/defaults.js"></script>
+  <script src="polish.js"></script>
   <script src="popup.js"></script>
   <script src="snippets.js"></script>
+  <script src="backup.js"></script>
 </body>
 </html>
