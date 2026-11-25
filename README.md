@@ -2,7 +2,7 @@
 
 **원작은 gaudium1257님의 Convenient_BOJ입니다.** 백준 문제 옆에서 코드를 작성하고 예제를 실행한 뒤, 공식 제출 페이지를 열고 채점 결과를 확인하는 크롬 확장입니다. kusonnim은 원작자의 허락을 받아 이 포크를 관리합니다. [원본 저장소](https://github.com/gaudium1257/Convenient_BOJ)
 
-이 포크의 기본 브랜치 `workspace`는 원작 v1.3.3에서 출발했습니다. `main`에는 포크 시점의 원작 v1.4.0이 있습니다. 아래 기능과 설치 방법은 `workspace` 기준입니다. [원작 v1.3.3](https://github.com/gaudium1257/Convenient_BOJ/tree/v1.3.3) · [이 포크 설치](#설치)
+이 포크의 개발 브랜치 `workspace`는 원작 v1.3.3에서 출발했습니다. GitHub 기본 브랜치 `main`에는 포크 시점의 원작 v1.4.0 코드와 포크 설치 안내가 있습니다. 아래 기능과 설치 방법은 `workspace` 기준입니다. [원작 v1.3.3](https://github.com/gaudium1257/Convenient_BOJ/tree/v1.3.3) · [이 포크 설치](#설치)
 
 | 구분 | 사용할 수 있는 기능 |
 | --- | --- |
