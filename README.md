@@ -1,4 +1,24 @@
-# Convenient_BOJ
+# Convenient_BOJ · Windows C++ 워크스페이스
+
+**원작은 gaudium1257님의 Convenient_BOJ입니다.** 원작은 백준 문제와 편집기를 나란히 띄우고 문제·언어별 초안을 저장합니다. C/C++/Python 예제 실행, 대화형 터미널, 공식 제출 탭 채우기와 채점 결과 표시도 원작의 기능입니다. kusonnim은 원작자의 허락을 받아 이 GitHub 포크를 관리합니다. [원본 저장소](https://github.com/gaudium1257/Convenient_BOJ)
+
+**포크를 설치하려면 `workspace` 브랜치의 소스 ZIP을 받으세요.** 압축을 풀고 `chrome://extensions`에서 개발자 모드를 켠 뒤, **압축해제된 확장 프로그램을 로드합니다**를 눌러 `manifest.json`이 들어 있는 폴더를 선택하세요. Git으로 받을 때는 `git clone --branch workspace https://github.com/kusonnim/Convenient_BOJ-Workspace.git`을 사용하세요. [workspace ZIP 다운로드](https://github.com/kusonnim/Convenient_BOJ-Workspace/archive/refs/heads/workspace.zip) · [Windows 도우미와 clangd 설치 안내](https://github.com/kusonnim/Convenient_BOJ-Workspace/blob/workspace/README.md#설치)
+
+| 포크에서 추가한 기능 | 동작 |
+| --- | --- |
+| Windows MSVC | 설치된 x64 MSVC로 C++17/20을 컴파일합니다. 로컬 컴파일러와 백준 제출 언어를 따로 고를 수 있습니다. |
+| 실행 안정성 | 같은 연결에서 유효한 빌드를 재사용하고 예제마다 새 프로세스를 실행합니다. 중지·시간 초과·연결 종료 시 자식 프로세스를 정리하며 Wandbox 전송에는 사용자의 선택이 필요합니다. |
+| Monaco 편집기 | 확장에 포함된 Monaco에서 다중 커서, 열 선택, 찾기·바꾸기와 접기를 사용합니다. 기존 초안과 커서 위치를 이어서 엽니다. |
+| clangd IntelliSense | 로컬 C++ 헤더로 멤버·헤더 완성, 함수 매개변수 안내, 호버, 선언으로 이동과 실시간 진단을 제공합니다. |
+
+| P2 · Monaco에서 로컬 MSVC 빌드를 재사용해 예제 두 개 통과 | P3 · 로컬 clangd가 제안한 `push_back` 오버로드 두 개 |
+| --- | --- |
+| ![P2 로컬 예제 실행 화면](https://raw.githubusercontent.com/kusonnim/Convenient_BOJ-Workspace/a0e8d4661d3eb64ccd4330b7d8100e690d9eeba7/docs/development/evidence/p2/monaco-msvc-dark.png) | ![P3 C++ 멤버 완성 화면](https://raw.githubusercontent.com/kusonnim/Convenient_BOJ-Workspace/a0e8d4661d3eb64ccd4330b7d8100e690d9eeba7/docs/development/evidence/p3/completion-light.png) |
+
+기본 브랜치 `main`에서는 원작 v1.4.0 코드를 볼 수 있습니다. 이 포크의 개발 브랜치 `workspace`는 원작 v1.3.3을 바탕으로 위 기능을 추가했습니다. 현재 제출 탭을 두 개 열면 첫 탭이 닫힐 수 있어 한 번에 한 문제의 제출 탭을 사용하세요. [워크스페이스 코드](https://github.com/kusonnim/Convenient_BOJ-Workspace/tree/workspace) · [개발 로드맵](ROADMAP.md) · [P3.5 이관 기록](https://github.com/kusonnim/Convenient_BOJ-Workspace/blob/workspace/docs/development/P3.5.md)
+
+<details>
+<summary>원작 v1.4.0 사용 설명과 원작 배포판 설치 방법</summary>
 
 백준(acmicpc.net) 문제 화면에서 **문제 읽기 → 코드 작성 → 실행 → 제출 → 정/오답 확인**을 한 화면에서 끝낼 수 있게 해 주는 크롬 확장 프로그램입니다.
 
@@ -151,3 +171,5 @@ vendor/codemirror/       CodeMirror 5 (MIT)
 docs/screenshots/        실제 동작 캡처
 .github/workflows/       태그를 올리면 Releases에 ZIP 배포
 ```
+
+</details>
