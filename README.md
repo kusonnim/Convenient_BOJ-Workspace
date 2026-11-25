@@ -2,15 +2,21 @@
 
 **원작은 gaudium1257님의 Convenient_BOJ입니다.** 백준 문제 옆에서 코드를 작성하고 예제를 실행한 뒤, 공식 제출 페이지를 열고 채점 결과를 확인하는 크롬 확장입니다. kusonnim은 원작자의 허락을 받아 이 포크를 관리합니다. [원본 저장소](https://github.com/gaudium1257/Convenient_BOJ)
 
-이 포크의 개발 브랜치 `workspace`는 원작 v1.3.3에서 출발했습니다. GitHub 기본 브랜치 `main`에는 포크 시점의 원작 v1.4.0 코드와 포크 설치 안내가 있습니다. 아래 기능과 설치 방법은 `workspace` 기준입니다. [원작 v1.3.3](https://github.com/gaudium1257/Convenient_BOJ/tree/v1.3.3) · [이 포크 설치](#설치)
+The original split workspace, drafts, templates, C/C++/Python runner, official submission form and judge view are **gaudium1257’s Convenient BOJ**. This fork incorporates the v1.4.0 sample selectors, per-problem custom-case format, normalized output diff and bounded Wandbox batch execution. The owner obtained the original author's permission. [Upstream](https://github.com/gaudium1257/Convenient_BOJ) · [Upstream v1.4.0](https://github.com/gaudium1257/Convenient_BOJ/tree/v1.4.0)
 
-| 구분 | 사용할 수 있는 기능 |
+| Fork additions | What you can use |
 | --- | --- |
-| 원작 v1.3.3 | 문제·에디터 분할 화면, 문제·언어별 초안과 기본 코드, C/C++/Python 예제 비교, 로컬 도우미와 Wandbox 실행, 공식 제출 탭 채우기와 채점 결과 표시 |
-| 포크 · Windows MSVC | 설치된 x64 MSVC로 C++17/20을 컴파일합니다. 로컬 컴파일러와 백준 제출 언어를 따로 선택할 수 있습니다. |
-| 포크 · 실행 안정성 | 같은 연결에서 유효한 빌드를 재사용하고 예제마다 새 프로세스를 실행합니다. 중지·시간 초과·연결 종료 시 자식 프로세스를 정리합니다. 로컬 실행이 불가능하면 Wandbox로 소스와 입력을 보내기 전에 선택을 받습니다. |
-| 포크 · Monaco 편집기 | 확장에 포함된 Monaco에서 다중 커서, 열 선택, 접기, 찾기·바꾸기를 사용합니다. 기존 초안과 커서 위치를 이어서 엽니다. |
-| 포크 · clangd IntelliSense | 로컬 clangd와 C++ 헤더로 멤버·헤더 완성, 함수 매개변수 안내, 호버, 정의로 이동, 실시간 진단을 제공합니다. |
+| Windows MSVC and execution reliability | x64 C++17/20, unchanged BOJ language selection, dependency-aware build reuse, isolated case processes, cancellation, timeouts and process-tree cleanup. Wandbox needs an explicit choice. |
+| Monaco Editor and local C++ IntelliSense | Multi-cursor editing, folding, find/replace and local clangd completion, signatures, definitions and diagnostics. C and Python retain Monaco language and document-word completion. |
+| Tests and snippets | Select, name, drag or keyboard-reorder custom cases, run one or all enabled cases, inspect raw output and the first differing lines. Save language-specific snippets with tab stops in the popup. |
+| Workspace and submissions | Resizable test, terminal, diagnostics and judge panes. Per-tab prefilling and judge routing keep each form with its originating workspace. Only the user submits on BOJ. |
+| Optional Power Mode | Typing particles, three presets, adjustable intensity, combo bursts and optional shake. Off by default. The editor respects reduced motion. |
+
+**P4 is a local review build.** Load this checkout for P4. The hosted source links below identify the existing P3.5 build until the owner integrates P4.1. [Installation](#installation) · [P4 report and measurements](docs/development/P4.md)
+
+![P4 custom cases in the light workspace, captured in Chrome using the local BOJ fixture](docs/development/evidence/p4/light-cases.png)
+
+![Real typing with the Aurora preset in the P4 editor](docs/development/evidence/p4/power-mode.gif)
 
 로컬 테스트 페이지에서 `std::vector`의 `push_back` 오버로드 두 개를 제안하는 실제 P3 화면입니다.
 
@@ -68,7 +74,7 @@ C++ 초안을 열면 도우미가 설치된 clangd와 호환되는 표준 라이
 2. B에서 백준의 **[제출]** 버튼만 누르면 돼요.
    백준 제출에는 보안 확인(reCAPTCHA)이 있어서, 마지막 버튼은 사람이 직접 눌러야 해요.
 3. 제출하자마자 **포커스가 A로 돌아와요.** B는 뒤에서 채점 현황을 지켜보고,
-   A의 **정/오답 확인** 탭에 `채점 중 → 맞았습니다!!` 가 실시간으로 표시돼요.
+   A의 **채점** 탭에 `채점 중 → 맞았습니다!!` 가 실시간으로 표시돼요.
 4. 채점이 끝나면 **B는 자동으로 닫혀요.** 채점 전에 B를 직접 닫으면 A에 "제출 기록 열기" 안내가 떠요.
 
 | 원작의 제출 탭 | 원작의 채점 결과 화면 |
@@ -77,16 +83,16 @@ C++ 초안을 열면 도우미가 설치된 clangd와 호환되는 표준 라이
 
 - 메모리·시간·코드 보기 링크와 **이 문제 내 제출 기록** 링크를 함께 보여 줘요.
 - 코드 공개 설정은 팝업에서 고를 수 있어요(기본값: 백준 설정을 따름).
-- 현재는 한 번에 한 문제의 제출 탭을 사용하세요. 두 번째 제출 탭을 열면 먼저 연 탭이 닫힐 수 있어요. 이 동작은 로컬 테스트에서 확인했고 P4에서 수정할 예정입니다. [검증 기록](docs/development/P3.md)
+- Each problem tab owns its form and result. When simultaneous forms for the same account and problem lead to an unfiltered status page, use the official submission history to identify the submission. [Fixture verification](docs/development/P4.md)
 
-## 설치
+## Installation
 
 ### 1단계: 확장 프로그램 (필수)
 
-1. 이 포크의 **workspace 소스 ZIP**을 내려받아 압축을 풉니다. Monaco와 워커가 포함되어 있어 별도 빌드가 필요 없어요. [workspace ZIP 다운로드](https://github.com/kusonnim/Convenient_BOJ-Workspace/archive/refs/heads/workspace.zip)
+1. For P4 review, use the local **workspace** checkout containing this README. Monaco and its worker are bundled. The public archive currently contains P3.5. [Hosted workspace ZIP](https://github.com/kusonnim/Convenient_BOJ-Workspace/archive/refs/heads/workspace.zip)
 2. 크롬 주소창에 `chrome://extensions` 를 입력합니다.
 3. 오른쪽 위 **개발자 모드**를 켭니다.
-4. **압축해제된 확장 프로그램을 로드합니다**를 누르고, 압축을 푼 폴더 중 `manifest.json`과 `host`가 바로 보이는 `Convenient_BOJ-Workspace-workspace` 폴더를 고릅니다.
+4. **압축해제된 확장 프로그램을 로드합니다**를 누르고, `manifest.json`과 `host`가 바로 보이는 프로젝트 루트 폴더를 고릅니다.
 5. 백준 문제 페이지를 새로고침하면 끝!
 
 > 압축을 푼 폴더는 지우지 마세요. 크롬이 그 폴더에서 확장을 읽어요.
@@ -120,14 +126,26 @@ gaudium1257님의 원작 배포판은 별도로 받을 수 있어요. [원작 Re
 | 키 | 동작 |
 | --- | --- |
 | Alt + C | 분할 화면 열기/닫기 |
-| Ctrl + Enter | 예제로 실행 |
+| Ctrl + Enter | 전체 테스트 실행 |
 | Ctrl + Shift + Enter | 제출 탭 열기 |
+| Ctrl + Alt + Enter | 선택한 테스트 실행 |
+| Ctrl + Shift + X | 실행 중지 |
 | Ctrl + S | 코드 저장 |
 | Ctrl + Space | 완성 목록 열기 (C++ 분석이 연결되면 clangd 제안 표시) |
 | F12 | C++ 분석이 연결된 편집기에서 선언으로 이동 |
 | Ctrl + F | 편집기 안에서 찾기 (왼쪽 화살표로 바꾸기 열기) |
 | Alt + ↑ / ↓ | 줄 이동 |
 | Shift + Alt + ↑ / ↓ | 줄 복제 |
+
+The optional test-first shortcut profile assigns Ctrl+Enter to the selected case, Ctrl+Shift+Enter to all tests and Ctrl+Shift+S to opening the official form. The classic profile remains the default.
+
+The P4 STL fixture measured 3.08 s for first semantic completion, 116 ms for a warm completion, 689 ms for diagnostics and 55.8 MiB for clangd. The P3 measurements on the original run were 3.56 s, 232 ms, 897 ms and 67.4 MiB. [Workload and measurements](docs/development/P4.md#performance-on-installed-windows-chrome)
+
+## Tests and snippets
+
+The Tests tab reads BOJ samples in place. Add a custom tab with **+**. Use the checkbox beside the expected output to compare even an empty string. An unchecked expectation runs the input and displays stdout. A separate checkbox controls inclusion in batch runs. Drag a custom tab or use Alt+Left/Right while it has focus. Raw input, expected output, stdout and stderr remain available in the terminal. The comparison ignores trailing horizontal whitespace, carriage returns and trailing empty lines. Special-judge results are indicative.
+
+Open **사용자 스니펫** in the popup, choose C++, C or Python, and save a prefix and body. Type the prefix in Monaco and press Ctrl+Space. Numbered placeholders such as `${1:value}` accept text and Tab advances to the next position. `$0` sets the final position. Snippets stay in local extension storage.
 
 ## 알아 두면 좋은 점
 

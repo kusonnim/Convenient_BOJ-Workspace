@@ -1,0 +1,17 @@
+{
+  "chromeVersion": "158.0.8127.37",
+  "editorReadyMs": 699,
+  "readyMs": 3122,
+  "coldCompletionMs": 3389,
+  "warmWidgetMs": [
+    233,
+    227,
+    214,
+    249,
+    228
+  ],
+  "diagnosticsMs": 1015,
+  "serverWorkingSetKiB": 68336,
+  "launcherWorkingSetKiB": 16608,
+  "nativeHostWorkingSetKiB": 26464
+}

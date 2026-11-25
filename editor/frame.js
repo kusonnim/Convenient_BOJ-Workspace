@@ -27,6 +27,10 @@ async function start() {
       if (m.type === 'suspend') state = workspace.suspend();
       if (m.type === 'read') state = workspace.snapshot();
       if (m.type === 'config') workspace.configure(m.settings);
+      if (m.type === 'jump' && workspace.view && Number.isSafeInteger(m.line) && Number.isSafeInteger(m.column)) {
+        const pos = workspace.model.validatePosition({ lineNumber: m.line, column: m.column });
+        workspace.view.setPosition(pos); workspace.view.revealPositionInCenterIfOutsideViewport(pos); workspace.view.focus();
+      }
       if (m.type === 'focus') workspace.view?.focus();
       if (m.type === 'layout') workspace.view?.layout();
       if (m.type === 'lock') workspace.view?.updateOptions({ readOnly: true });
@@ -55,8 +59,14 @@ async function start() {
     if (!e.isTrusted || e.isComposing || e.keyCode === 229 || !workspace?.view || workspace.view.inComposition) return;
     let action;
     if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyC') action = 'toggle';
-    if (!e.altKey && (e.ctrlKey || e.metaKey) && workspace.view.hasTextFocus()) {
-      if (e.key === 'Enter') action = e.shiftKey ? 'submit' : 'run';
+    if (e.key === 'Escape') { notify({ type: 'action', action: 'unfocus' }); return; }
+    if ((e.ctrlKey || e.metaKey) && workspace.view.hasTextFocus()) {
+      const alternative = workspace.keys === 'tests';
+      if (e.altKey && !e.shiftKey && e.key === 'Enter') action = 'selected';
+      if (e.altKey && !action) return;
+      if (!e.altKey && e.key === 'Enter') action = alternative ? (e.shiftKey ? 'run' : 'selected') : (e.shiftKey ? 'submit' : 'run');
+      if (e.shiftKey && e.code === 'KeyX') action = 'stop';
+      if (alternative && e.shiftKey && e.code === 'KeyS') action = 'submit';
       if (!e.shiftKey && e.code === 'KeyS') action = 'save';
     }
     if (action) {

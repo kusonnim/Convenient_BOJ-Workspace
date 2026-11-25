@@ -1,61 +1,61 @@
-// Convenient BOJ — 채점 현황 페이지
-// 분할 화면의 [제출]로 열린 제출 탭(B)에서만 동작한다.
-// 1) 제출 직후 이 페이지가 열리면 포커스를 문제 탭(A)으로 돌려 달라고 백그라운드에 알린다.
-// 2) B는 뒤에서 채점 결과를 읽어 storage로 A에 전달하고, 채점이 끝나면 백그라운드가 B를 닫는다.
+// Only the managed form can obtain its watch. Every status GET in the development
+// suites is intercepted locally, and the form's final button belongs to the user.
 (() => {
   if (globalThis.__cbojStatusLoaded) return;
   globalThis.__cbojStatusLoaded = true;
-  const ext = globalThis.chrome;
-  const FINAL = globalThis.CBOJ_FINAL;
-  const parseRow = globalThis.cbojParseRow;
-  const send = (msg) => Promise.resolve(ext.runtime.sendMessage(msg)).catch(() => ({}));
-
-  send({ type: 'cboj:is-submit-window' }).then((r) => {
-    if (!r || !r.isSubmitWindow) return;
-    ext.storage.local.get({ cbojWatch: null }, ({ cbojWatch: w }) => {
-      if (!w || Date.now() - w.at > 15 * 60 * 1000) return;
-      send({ type: 'cboj:submitted' }); // A로 포커스 돌려주기
-      watch(w);
-    });
-  });
-
-  function watch(w) {
-    let solId = sessionStorage.getItem('cbojSolId');
-    let last = '';
-    let lastChange = Date.now();
-
-    const findRow = () => {
-      if (solId) return document.getElementById('solution-' + solId);
-      return [...document.querySelectorAll('#status-table tbody tr')]
-        .find((tr) => tr.querySelector(`a[href="/problem/${w.pid}"]`));
-    };
-
-    const tick = () => {
-      const tr = findRow();
-      if (!tr) return;
-      const row = parseRow(tr);
-      if (!solId) { solId = row.id; sessionStorage.setItem('cbojSolId', solId); }
-      const sig = [row.text, row.memory, row.time].join('|');
-      if (sig === last) return;
-      last = sig;
-      lastChange = Date.now();
-      const done = FINAL.includes(row.key);
-      ext.storage.local.set({ cbojJudge: { token: w.token, stage: done ? 'done' : 'judging', ...row } });
-      if (done) {
-        observer.disconnect();
-        clearInterval(fallback);
-        ext.storage.local.remove('cbojWatch');
-        sessionStorage.removeItem('cbojSolId');
-        send({ type: 'cboj:judge-done' }); // 백그라운드가 이 창을 닫는다
+  const send = msg => chrome.runtime.sendMessage(msg).catch(() => null);
+  send({ type: 'cboj:submitted' }).then(w => {
+    if (!w?.token) return;
+    const S = globalThis.CBOJ_SEL.status;
+    const explicit = new URLSearchParams(location.search).get('solution_id');
+    let pinned = w.solution || (/^\d+$/.test(explicit || '') && explicit) || null;
+    const pollKey = 'cbojPoll:' + w.token;
+    let poll = {};
+    try { poll = JSON.parse(sessionStorage.getItem(pollKey) || '{}'); } catch { /* old fixture or page data */ }
+    let interval = Math.min(60000, Math.max(8000, Number(poll.interval) || 8000));
+    let last = '', changed = Date.now(), busy = false, again = false;
+    async function tick() {
+      if (busy) { again = true; return; }
+      busy = true;
+      try {
+        const rows = pinned ? [document.getElementById(S.rowIdPrefix + pinned)] : document.querySelectorAll(S.rows);
+        for (const tr of rows) {
+          if (!tr?.querySelector('a[href="/problem/' + w.pid + '"]')) continue;
+          if (w.user && tr.cells[1]?.textContent.trim() !== w.user) continue;
+          const row = globalThis.cbojParseRow(tr);
+          const sig = JSON.stringify(row);
+          if (sig === last) break;
+          const reply = await send({ type: 'cboj:judge-row', row });
+          if (reply?.occupied) continue;
+          if (reply?.accepted) {
+            pinned = row.id;
+            sessionStorage.setItem('cbojSolId', pinned);
+            last = sig;
+            if (poll.signature !== sig) {
+              interval = 8000;
+              poll.signature = sig;
+              sessionStorage.setItem(pollKey, JSON.stringify({ signature: sig, interval }));
+            }
+            changed = Date.now();
+            if (reply.done) stop();
+          }
+          break;
+        }
+      } finally {
+        busy = false;
+        if (again) { again = false; queueMicrotask(tick); }
       }
-    };
-
+    }
     const observer = new MutationObserver(tick);
     observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
-    // 실시간 갱신이 멈춘 것처럼 보이면 페이지를 다시 불러온다.
     const fallback = setInterval(() => {
-      if (Date.now() - lastChange > 6000) location.reload();
+      if (Date.now() >= w.expires) { stop(); return; }
+      if (Date.now() - changed < interval) return;
+      sessionStorage.setItem(pollKey, JSON.stringify({ signature: poll.signature, interval: Math.min(60000, interval * 2) }));
+      location.reload();
     }, 2000);
+    function stop() { observer.disconnect(); clearInterval(fallback); }
+    addEventListener('pagehide', stop, { once: true });
     tick();
-  }
+  });
 })();

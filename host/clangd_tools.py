@@ -29,7 +29,12 @@ def resource_dirs(server):
     # Most LLVM distributions ship matching builtins next to the server.
     # Some IDEs package the executable alone. Test other installed LLVM
     # resources against real STL headers before accepting such a pairing.
-    yield None
+    # IDE packages without adjacent builtins would parse the STL twice, once
+    # with missing intrinsics. Try verified installed resources first there.
+    adjacent = server.parent.parent / 'lib/clang'
+    packaged = any(adjacent.glob('*/include/stddef.h'))
+    if packaged or not WINDOWS:
+        yield None
     roots = [server.parent.parent / 'lib/clang']
     if WINDOWS:
         roots.append(Path(os.environ['ProgramFiles']) / 'LLVM/lib/clang')
@@ -39,6 +44,8 @@ def resource_dirs(server):
         for path in sorted(root.glob('*'), reverse=True):
             if (path / 'include/stddef.h').is_file():
                 yield path
+    if WINDOWS and not packaged:
+        yield None
 
 
 def msvc_header_sets():
@@ -156,6 +163,7 @@ def discover(root, standard, control, prefer_gcc=False):
                     continue
                 if checked['code'] == 0 and not checked['timeout'] and not checked['killed']:
                     roots = [*includes, *([resource / 'include'] if resource else [])]
-                    return (args + ['--header-insertion=never', '--limit-results=80', '--pch-storage=memory'],
-                            env, family, roots), None
+                    private_env = {**env, 'TEMP': str(root), 'TMP': str(root), 'TMPDIR': str(root)}
+                    return (args + ['--header-insertion=never', '--limit-results=80', '--pch-storage=disk'],
+                            private_env, family, roots), None
     return None, 'no-headers'

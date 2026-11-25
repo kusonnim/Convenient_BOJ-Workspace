@@ -7,8 +7,9 @@
   globalThis.__cbojSubmitLoaded = true;
   const PID = m[1];
   const ext = globalThis.chrome;
+  const S = globalThis.CBOJ_SEL.submit; // 백준 제출 페이지 선택자 (shared/boj.js)
 
-  const sel = document.querySelector('select[name="language"]');
+  const sel = document.querySelector(S.language);
   if (sel) {
     const langs = [...sel.options].filter((o) => o.value !== '').map((o) => ({ id: o.value, name: o.textContent.trim() }));
     if (langs.length) ext.storage.local.set({ cbojLangs: langs });
@@ -31,8 +32,8 @@
   }
 
   function submitButton() {
-    const form = document.getElementById('submit_form') || document;
-    return [...form.querySelectorAll('button, input[type="submit"]')]
+    const form = document.querySelector(S.form) || document;
+    return [...form.querySelectorAll(S.buttons)]
       .find((b) => b.offsetParent !== null && /제출/.test(b.textContent || b.value || ''));
   }
 
@@ -44,10 +45,7 @@
       clearInterval(timer);
       removeEventListener('message', onMsg);
       const r = e.data;
-      ext.storage.local.set({
-        cbojWatch: { token: p.token, pid: PID, at: Date.now() },
-        cbojJudge: { token: p.token, stage: 'filled', langOk: r.langOk, langName: p.langName },
-      });
+      ext.runtime.sendMessage({ type: 'cboj:filled', langOk: r.langOk === true }).catch(() => {});
       if (!r.ok) { banner('warn', 'Convenient BOJ: 코드를 넣지 못했어요. 클립보드에 복사해 두었으니 붙여넣어 주세요.'); navigator.clipboard?.writeText(p.code).catch(() => {}); return; }
       banner(r.langOk ? 'info' : 'warn', r.langOk
         ? 'Convenient BOJ: 코드를 채워 두었어요. 아래 [제출] 버튼을 눌러주세요. 결과는 분할 화면에 표시돼요.'
@@ -67,18 +65,6 @@
   }
 
   // 분할 화면이 연 제출 탭(B)인지 백그라운드에 확인하고, 2분 안에 만든 제출 요청만 채운다.
-  let tries = 0;
-  const look = () => {
-    ext.storage.local.get({ cbojPending: null }, ({ cbojPending: p }) => {
-      if (p && p.pid === PID && Date.now() - p.at < 120000) {
-        ext.storage.local.remove('cbojPending');
-        fill(p);
-      } else if (++tries < 10) {
-        setTimeout(look, 300);
-      }
-    });
-  };
-  Promise.resolve(ext.runtime.sendMessage({ type: 'cboj:is-submit-window' }))
-    .then((r) => { if (r && r.isSubmitWindow) look(); })
-    .catch(() => {});
+  ext.runtime.sendMessage({ type: 'cboj:claim-submit' })
+    .then(reply => { if (reply?.pending) fill(reply.pending); }).catch(() => {});
 })();

@@ -118,7 +118,8 @@ test('real terminal input, EOF, stop, simultaneous tabs and disconnect cleanup',
   const input = p.locator('.cboj-term-in');
   await input.fill('한글 42');
   await input.press('Enter');
-  await expect(p.locator('.tlive').last()).toContainText('echo 한글 42');
+  // stdout and stderr arrive on independent OS pipes. Preserve order within each stream.
+  await expect.poll(async () => (await p.locator('.tlive').last().locator('span:not([class])').allTextContents()).join('')).toContain('echo 한글 42');
   await expect.poll(async () => (await p.locator('.tlive .err').allTextContents()).join('')).toContain('진단');
   await input.press('Control+d');
   await expect(status(p)).toHaveText('실행 완료');

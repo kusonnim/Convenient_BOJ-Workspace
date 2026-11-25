@@ -2,9 +2,10 @@
 (() => {
   const frameUrl = chrome.runtime.getURL('editor/frame.html');
   class WorkspaceEditor {
-    constructor(container, { changed, action, error }) {
+    constructor(container, { changed, action, error, diagnostics }) {
       this.root = container.attachShadow({ mode: 'closed' });
       this.changed = changed;
+      this.diagnostics = diagnostics;
       this.action = action;
       this.error = error;
       this.generation = this.sequence = 0;
@@ -59,6 +60,7 @@
     receive(m) {
       if (!Number.isSafeInteger(m?.generation)) return;
       if (m.generation === this.generation && this.doc) {
+        if (m.type === 'diagnostics') this.diagnostics(m.items);
         if (m.type === 'analysis') {
           this.analysisMessage(m);
           return;

@@ -46,10 +46,10 @@ Preserve BOJ original statement, math, images and tables, and native navigation.
 
 Keep problem/language-specific drafts, cursor and scroll restoration, templates, user snippets and test settings. Never overwrite existing data. Migrate storage idempotently and keep compatibility or rollback path. Do not add submission snapshots, code history or Git integration: the owner already has a separate submission-to-Git workflow.
 
-Final P4 also covers a minimal workspace with redundant copy removed and optional Power Mode. Power Mode defaults to off. Users who enable it can choose a preset and adjust particle and combo intensity. The roadmap defines the verification gate for these planned changes.
+P4 implements the compact lower panel, keyboard resizing, persisted size and panel tab, custom case tabs, local per-language snippets and optional typing effects. Power Mode defaults to off on fresh and existing profiles. Its three presets share a bounded drawing surface and combo thresholds. Reduced motion disables drawing and shake. The BOJ statement retains the site's theme. The editor keeps the user's existing theme and the fresh-install light default. [P4 implementation and evidence](docs/development/P4.md)
 
 ### Keyboard behavior
-Preserve Alt+C toggle, Ctrl+S save, and the existing Ctrl+Enter / Ctrl+Shift+Enter behavior through P3.5. Final P4 reviews the proposed configurable mappings for the current test (Ctrl+Enter), all tests (Ctrl+Shift+Enter), opening the official submit page (Ctrl+Shift+S) and stopping a run (Ctrl+Shift+X). Provide a migration notice if a binding changes. The user personally initiates final submission on the official page. Keep Monaco editing shortcuts and Ctrl+Space completion. Test actual Chrome for reserved keys, alternatives, focus and IME composition.
+Preserve Alt+C toggle, Ctrl+S save, and the existing Ctrl+Enter / Ctrl+Shift+Enter behavior through P3.5. P4 retains the classic profile and adds an opt-in test-first profile for the current test (Ctrl+Enter), all tests (Ctrl+Shift+Enter), opening the official form (Ctrl+Shift+S) and stopping a run (Ctrl+Shift+X). Ctrl+Alt+Enter runs the selected test in either profile. The user personally initiates final submission on the official page. Keep Monaco editing shortcuts and Ctrl+Space completion. Test actual Chrome for reserved keys, alternatives, focus and IME composition.
 
 ### Submission and external integration
 Preserve the official BOJ submission tab, code/language prefilling, manual final submission and CAPTCHA, privacy choice, judge tracking, result links, focus return and tab cleanup. Keep external Git integration untouched. Apply the account-safety requirements above to compatibility claims and never collect credentials. Test the existing `cbojPending`, `cbojJudge` and submission session state in local multi-tab fixtures when addressing cross-talk.
@@ -59,3 +59,7 @@ No solved.ac integration in this roadmap, no independent application, no AI-gene
 
 ## Acceptance principles
 Every phase must retain existing usable features, run relevant automated checks, and verify actual browser interactions when available. Use local fixtures for deterministic BOJ and native-host simulation, plus real Chrome/Windows smoke tests for platform claims. Distinguish fixture results from live results and report blocked checks. Preserve the extension ID, native-host allowlist and packaging. Pushes and releases require explicit owner authorization. See ROADMAP.md for phase gates.
+
+## P4 integration contract
+
+The extension key, native-host name, permission set, runner protocol 2, and analysis protocol 1 are retained. The new settings are additive. Existing draft, template and runner selection formats are read in place. The local P4 review gate precedes the separately developed P4.1. Integration into the fork's default branch and remote publication are deferred to the owner-approved combined integration. [Adapter, settings, native and CSS boundaries](docs/development/P4.md#integration-points-for-p41)

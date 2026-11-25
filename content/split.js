@@ -52,34 +52,34 @@
     for (const kid of kids) if (kid != null) el.append(kid);
     return el;
   };
-  const normalize = (s) => {
-    const lines = String(s).replace(/\r/g, '').split('\n').map((l) => l.replace(/[ \t]+$/, ''));
-    while (lines.length && lines[lines.length - 1] === '') lines.pop();
-    return lines.join('\n');
-  };
+  async function mapLimit(items, limit, fn) {
+    const out = new Array(items.length);
+    let next = 0;
+    const worker = async () => {
+      while (next < items.length) {
+        const i = next++;
+        out[i] = await fn(items[i], i);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+    return out;
+  }
 
   const store = {
     get: (area, defaults) => new Promise((r) => { try { ext.storage[area].get(defaults, (v) => r(v || defaults)); } catch { r(defaults); } }),
     set: async (area, obj) => { try { await ext.storage[area].set(obj); } catch { /* 확장이 다시 로드됨 */ } },
   };
 
-  const SPJ = !!document.querySelector('.problem-label-spj');
-  function samples() {
-    const list = [];
-    document.querySelectorAll('pre[id^="sample-input-"]').forEach((pre) => {
-      const n = pre.id.replace('sample-input-', '');
-      const out = document.getElementById('sample-output-' + n);
-      list.push({ n, input: pre.textContent, expected: out ? out.textContent : null });
-    });
-    return list;
-  }
+  const BOJ = globalThis.cbojBoj;
+  const SPJ = BOJ.isSpecialJudge();
 
   // ───────── 상태 ─────────
+  let snippets = {};
   let settings = { ...DEFAULTS };
   let layout = { width: 50, bottom: 260 };
   let langs = FALLBACK_LANGS.filter((l) => langInfo(l.name));
   let langId = null;
-  let me = ($('meta[name="username"]') || {}).content || '';
+  let me = BOJ.username();
   let ui = null;
   let editor = null;
   let saveTimer = 0;
@@ -87,6 +87,7 @@
   let draftReady = false;
   let runnerChoice = 'auto';
   let batchId = null;
+  let batchStopped = false;
   let runEpoch = 0;
 
   const currentLang = () => langs.find((l) => l.id === langId) || langs[0];
@@ -96,17 +97,21 @@
   // ───────── 화면 만들기 ─────────
   function build() {
     const langSel = h('select', { class: 'cboj-lang', title: '제출 언어' });
-    const btnReset = h('button', { class: 'cboj-btn', title: '기본 템플릿으로 되돌리기', text: '↺ 초기화' });
-    const btnRun = h('button', { class: 'cboj-btn run', title: '예제로 실행 (Ctrl+Enter)', text: '▶ 실행' });
+    const btnReset = h('button', { class: 'cboj-btn', title: '기본 템플릿으로 되돌리기', text: '↺', 'aria-label': '기본 템플릿으로 초기화' });
+    const btnRun = h('button', { class: 'cboj-btn run', title: '전체 테스트 실행 (Ctrl+Enter)', text: '▶ 실행' });
     const btnSubmit = h('button', { class: 'cboj-btn submit', title: '백준에 제출 (Ctrl+Shift+Enter)', text: '제출' });
     const btnClose = h('button', { class: 'cboj-icon', title: '분할 화면 닫기', text: '✕' });
     const editorSlot = h('div', { class: 'cboj-editor' });
 
-    const tabResult = h('button', { class: 'cboj-tab active', 'data-tab': 'result', text: '정/오답 확인' });
+    const tabResult = h('button', { class: 'cboj-tab active', 'data-tab': 'result', text: '채점' });
     const tabTerm = h('button', { class: 'cboj-tab', 'data-tab': 'term', text: '터미널' });
-    const status = h('span', { class: 'cboj-status' });
+    const tabCases = h('button', { class: 'cboj-tab', 'data-tab': 'cases', text: '테스트' });
+    const tabProblems = h('button', { class: 'cboj-tab', 'data-tab': 'problems', text: '진단' });
+    const paneProblems = h('div', { class: 'cboj-pane problems' });
+    const cases = new globalThis.CbojCases(PID, h, runSamples, message => setStatus(message, 'err'));
+    const status = h('span', { class: 'cboj-status', role: 'status' });
 
-    const card = h('div', { class: 'cboj-card empty', text: '제출하면 이곳에서 채점 결과를 실시간으로 볼 수 있어요.' });
+    const card = h('div', { class: 'cboj-card empty', text: '제출 기록 없음' });
     const histWrap = h('div', { class: 'cboj-hist' },
       h('a', { class: 'cboj-link', target: '_blank', href: `/status?problem_id=${PID}&user_id=${encodeURIComponent(me)}`, text: '이 문제 내 제출 기록 보기 →' }));
     const paneResult = h('div', { class: 'cboj-pane result active' }, card, histWrap);
@@ -121,21 +126,24 @@
 
     const resizerX = h('div', { class: 'cboj-resizer-x', title: '드래그해서 너비 조절' });
     const resizerY = h('div', { class: 'cboj-resizer-y', title: '드래그해서 높이 조절' });
+    const icon = (text, label) => h('button', { class: 'cboj-icon panel-tool', text, title: label, 'aria-label': label });
+    const collapse = icon('⌄', '아래 패널 접기 또는 펼치기'), maximize = icon('↕', '아래 패널 최대화'), focus = icon('⛶', '편집기 집중 모드');
     const bottom = h('div', { class: 'cboj-bottom' },
-      h('div', { class: 'cboj-tabs' }, tabResult, tabTerm, status), paneResult, paneTerm);
+      h('div', { class: 'cboj-tabs' }, tabCases, tabTerm, tabProblems, tabResult, status, collapse, maximize), cases.pane, paneTerm, paneProblems, paneResult);
 
     const panel = h('aside', { id: 'cboj-panel', class: 'cboj', 'aria-label': '코드 작성' },
       resizerX,
       h('div', { class: 'cboj-toolbar' },
         h('span', { class: 'cboj-title', text: PID + '번' }), langSel,
-        h('span', { class: 'cboj-spacer' }), btnReset, btnRun, btnSubmit, btnClose),
+        h('span', { class: 'cboj-spacer' }), btnReset, btnRun, btnSubmit, focus, btnClose),
       editorSlot, resizerY, bottom);
     document.body.appendChild(panel);
 
     status.before(where);
-    ui = { panel, langSel, bottom, card, termOut, termIn, status, tabResult, tabTerm, paneResult, paneTerm, btnRun, btnSubmit, btnCustom, where };
+    ui = { panel, langSel, bottom, card, termOut, termIn, status, tabResult, tabTerm, paneResult, paneTerm, btnRun, btnSubmit, btnCustom, where, cases, paneProblems, tabProblems, tabCases };
 
     editor = new globalThis.CbojWorkspaceEditor(editorSlot, {
+      diagnostics: items => renderProblems(items),
       changed() {
         clearTimeout(saveTimer);
         saveTimer = setTimeout(() => saveDraft(false), 600);
@@ -143,6 +151,9 @@
       action(name) {
         if (name === 'toggle') close();
         if (name === 'run') runSamples();
+        if (name === 'selected') runSamples(true);
+        if (name === 'stop') { if (live) stopLive(); else stopBatch(); }
+        if (name === 'unfocus') setFocus(false);
         if (name === 'submit') submit();
         if (name === 'save') saveDraft(true);
       },
@@ -179,11 +190,15 @@
     where.addEventListener('click', () => {
       if (localReady() || runnerChoice === 'wandbox') return;
       checkRunner(true).then(() => {
-        if (runner.state !== 'on') window.open('https://github.com/gaudium1257/Convenient_BOJ#2단계-내-pc에서-실행-진짜-터미널-선택', '_blank');
+        if (runner.state !== 'on') window.open('https://github.com/kusonnim/Convenient_BOJ-Workspace#installation', '_blank');
       });
     });
-    [tabResult, tabTerm].forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
+    [tabResult, tabTerm, tabCases, tabProblems].forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
 
+    collapse.onclick = () => { layout.collapsed = !layout.collapsed; layout.maximized = false; persistLayout(); };
+    maximize.onclick = () => { layout.maximized = !layout.maximized; layout.collapsed = false; persistLayout(); };
+    focus.onclick = () => setFocus(!panel.classList.contains('focus'));
+    renderProblems([]);
     dragResize(resizerX, (e) => {
       const pct = ((innerWidth - e.clientX) / innerWidth) * 100;
       layout.width = Math.round(Math.min(75, Math.max(28, pct)));
@@ -196,13 +211,27 @@
     });
 
     applySettings(settings);
-    termOut.append(line('info', '▶ 실행: 문제의 예제 입력으로 돌려보고 정답과 비교해요. (Ctrl+Enter)'));
-    termOut.append(line('info', '아래 칸: 프로그램을 터미널에서 실행하고, 실행 중에 입력을 바로 보낼 수 있어요.'));
     renderRunner();
     checkRunner();
   }
 
   function dragResize(handle, onMove) {
+    const horizontal = handle.classList.contains('cboj-resizer-x');
+    handle.tabIndex = 0;
+    handle.setAttribute('role','separator');
+    handle.setAttribute('aria-label', horizontal ? '편집기 너비' : '아래 패널 높이');
+    handle.setAttribute('aria-orientation', horizontal ? 'vertical' : 'horizontal');
+    const reset = () => { if (horizontal) layout.width = 50; else layout.bottom = 260; layout.maximized = layout.collapsed = false; persistLayout(); };
+    handle.ondblclick = reset;
+    handle.onkeydown = e => {
+      if (e.key === 'Home' || e.key === 'Enter') { e.preventDefault(); reset(); return; }
+      const delta = (horizontal ? { ArrowLeft: 1, ArrowRight: -1 } : { ArrowUp: 1, ArrowDown: -1 })[e.key];
+      if (!delta) return;
+      e.preventDefault();
+      if (horizontal) layout.width = Math.min(75, Math.max(28, layout.width + 2 * delta));
+      else layout.bottom = Math.min(ui.panel.clientHeight - 160, Math.max(110, layout.bottom + 16 * delta));
+      persistLayout();
+    };
     handle.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       handle.setPointerCapture(e.pointerId);
@@ -224,15 +253,39 @@
     });
   }
 
+  function setFocus(on) {
+    if (ui.panel.classList.contains('focus') === on) return;
+    ui.panel.classList.toggle('focus', on);
+    editor.layout();
+  }
+  function persistLayout() { applyLayout(); store.set('local', { cbojLayout: layout }); editor?.layout(); }
   function applyLayout() {
     document.documentElement.style.setProperty('--cboj-w', layout.width + 'vw');
+    if (ui) {
+      ui.panel.classList.toggle('collapsed', !!layout.collapsed);
+      ui.panel.classList.toggle('maximized', !!layout.maximized);
+    }
     if (ui) ui.panel.style.setProperty('--cboj-bottom-h', layout.bottom + 'px');
   }
 
-  function showTab(name) {
-    for (const t of [ui.tabResult, ui.tabTerm]) t.classList.toggle('active', t.dataset.tab === name);
-    ui.paneResult.classList.toggle('active', name === 'result');
-    ui.paneTerm.classList.toggle('active', name === 'term');
+  function showTab(name, persist = true) {
+    for (const tab of ui.panel.querySelectorAll('.cboj-tab')) {
+      tab.classList.toggle('active', tab.dataset.tab === name);
+      tab.setAttribute('aria-pressed', String(tab.dataset.tab === name));
+    }
+    for (const pane of ui.panel.querySelectorAll('.cboj-pane')) pane.classList.toggle('active', pane.classList.contains(name));
+    if (persist) {
+      if (layout.collapsed) { layout.collapsed = false; persistLayout(); }
+      store.set('local', { ['panelTab:' + PID]: name });
+    }
+  }
+
+  function renderProblems(items) {
+    ui.paneProblems.replaceChildren(...(items.length ? items.map(item => h('button', {
+      class: 'problem-item', text: item.startLineNumber + ':' + item.startColumn + '  ' + item.message,
+      onclick: () => editor.send('jump', { line: item.startLineNumber, column: item.startColumn }),
+    })) : [h('span', { class: 'quiet', text: '진단 없음' })]));
+    ui.tabProblems.textContent = items.length ? '진단 ' + items.length : '진단';
   }
 
   function setStatus(text, kind = '') {
@@ -299,6 +352,7 @@
   }
   function termAppend(...nodes) {
     ui.termOut.append(...nodes);
+    while (ui.termOut.childElementCount > 500) ui.termOut.firstElementChild.remove();
     ui.termOut.scrollTop = ui.termOut.scrollHeight;
   }
 
@@ -429,6 +483,7 @@
     return confirm(reason + '\n이번 실행의 소스 코드와 입력을 온라인 서비스 Wandbox(wandbox.org)에 보낼까요?') ? 'remote' : 'cancel';
   }
   function stopBatch() {
+    batchStopped = true;
     if (batchId !== null) {
       try { runner.port?.postMessage({ type: 'kill', protocol: 2, id: batchId }); } catch { /* disconnected */ }
     }
@@ -495,25 +550,32 @@
     const place = await executionPlace(epoch);
     if (place === 'cancel') return { cancelled: true };
     if (place === 'local') {
-      const r = await hostRequest({ type: 'batch', ...nativeOptions(), lang: info, code, inputs, timeLimit: 10 }, 'batch-result');
-      if (r.type === 'lost') return { fatal: r.message };
-      if (r.error) {
-        if (r.error.code === 'cancelled') return { cancelled: true };
-        if (r.error.code === 'compile') return { where: '내 PC', cmd: r.cmd && '$ ' + r.cmd, compileError: r.error.message };
-        return { fatal: r.error.message };
+      const groups = [[]], encoder = new TextEncoder();
+      let bytes = 0;
+      for (const input of inputs) {
+        const size = encoder.encode(input).length;
+        if (size > 524288) return { fatal: '한 테스트의 입력은 UTF-8 512 KiB까지 실행할 수 있어요.' };
+        if (groups.at(-1).length === 64 || bytes + size > 524288) { groups.push([]); bytes = 0; }
+        groups.at(-1).push(input);
+        bytes += size;
       }
-      const nl = (s) => String(s || '').replace(/\r\n/g, '\n');
-      return {
-        where: '내 PC',
-        cmd: '$ ' + r.cmd + cacheNote(r),
-        warnings: r.warnings,
-        results: r.results.map((x) => ({
-          stdout: nl(x.stdout),
-          stderr: nl(x.stderr),
-          ms: x.ms,
+      const out = { where: '내 PC', results: [] };
+      for (const group of groups) {
+        if (batchStopped || epoch !== runEpoch) return { cancelled: true };
+        const r = await hostRequest({ type: 'batch', ...nativeOptions(), lang: info, code, inputs: group, timeLimit: 10 }, 'batch-result');
+        if (r.type === 'lost') return { fatal: r.message };
+        if (r.error) {
+          if (r.error.code === 'cancelled') return { cancelled: true };
+          if (r.error.code === 'compile') return { where: '내 PC', cmd: r.cmd && '$ ' + r.cmd, compileError: r.error.message };
+          return { fatal: r.error.message };
+        }
+        if (!out.cmd) { out.cmd = '$ ' + r.cmd + cacheNote(r); out.warnings = r.warnings; }
+        for (const x of r.results.slice(0, group.length)) out.results.push({
+          stdout: String(x.stdout ?? ''), stderr: String(x.stderr ?? ''), ms: x.ms,
           note: x.overLimit ? '출력 한도 초과' : x.timeout ? '시간 초과 (10초)' : (x.code ? `${x.note || '런타임 에러'} (종료 코드 ${x.code})` : ''),
-        })),
-      };
+        });
+      }
+      return out;
     }
     // Wandbox: 첫 입력으로 컴파일 에러를 확인하고 나머지는 동시에
     const first = await execute(inputs[0], info, code);
@@ -521,7 +583,9 @@
     if (first.compileError && first.status !== '0' && /\berror\b/.test(first.compileError) && !first.stdout) {
       return { where: 'Wandbox', cmd: commandLine(first, info), compileError: first.compileError };
     }
-    const rest = await Promise.all(inputs.slice(1).map((s) => execute(s, info, code)));
+    const rest = await mapLimit(inputs.slice(1), 3, input =>
+      epoch === runEpoch && !batchStopped ? execute(input, info, code) : null);
+    if (epoch !== runEpoch || batchStopped) return { cancelled: true };
     return {
       where: 'Wandbox',
       cmd: commandLine(first, info),
@@ -532,12 +596,60 @@
     };
   }
 
-  async function runSamples() {
+  function outLines(s) {
+    const lines = String(s == null ? '' : s).replace(/\r/g, '').split('\n').map((l) => l.replace(/[ \t]+$/, ''));
+    while (lines.length && lines[lines.length - 1] === '') lines.pop();
+    return lines;
+  }
+  const squash = (l) => (l == null ? null : l.replace(/\s+/g, ' ').trim());
+  const showSpaces = (l) => l.replace(/ /g, '·').replace(/\t/g, '→');
+
+  function diffView(item, res) {
+    const exp = outLines(item.expected);
+    const act = outLines(res.stdout);
+    const n = Math.max(exp.length, act.length);
+    let first = -1;
+    for (let i = 0; i < n; i++) if (exp[i] !== act[i]) { first = i; break; }
+
+    const notes = [];
+    if (first >= 0) {
+      notes.push(`${first + 1}번째 줄부터 달라요`);
+      if (exp.length !== act.length) {
+        const d = act.length - exp.length;
+        notes.push(`기대 ${exp.length}줄 / 내 출력 ${act.length}줄 (${d > 0 ? d + '줄 많음' : -d + '줄 부족'})`);
+      }
+      if (exp[first] != null && act[first] != null && squash(exp[first]) === squash(act[first])) notes.push('공백(띄어쓰기)만 달라요');
+    }
+
+    // 다른 줄 주변만 보여 준다
+    const from = Math.max(0, first - 3);
+    const to = Math.min(n, first + 12);
+    const table = h('table', { class: 'tdiff' },
+      h('thead', {}, h('tr', {}, h('th', { text: '' }), h('th', { text: '기대 출력' }), h('th', { text: '내 출력' }))));
+    const body = h('tbody');
+    if (from > 0) body.append(h('tr', { class: 'gap' }, h('td', { text: '⋮' }), h('td', { text: `(위 ${from}줄 같음)` }), h('td')));
+    for (let i = from; i < to; i++) {
+      const bad = exp[i] !== act[i];
+      const ws = bad && exp[i] != null && act[i] != null && squash(exp[i]) === squash(act[i]);
+      const cell = (v) => h('td', { class: v == null ? 'none' : '', text: v == null ? '(없음)' : (ws ? showSpaces(v) : v) });
+      body.append(h('tr', { class: bad ? 'bad' : '' }, h('td', { class: 'ln', text: (bad && i === first ? '▶ ' : '') + (i + 1) }), cell(exp[i]), cell(act[i])));
+    }
+    if (to < n) body.append(h('tr', { class: 'gap' }, h('td', { text: '⋮' }), h('td', { text: `(아래 ${n - to}줄 더 있음)` }), h('td')));
+    table.append(body);
+
+    return h('div', { class: 'tdiff-wrap' }, h('div', { class: 'tdiff-note', text: notes.join(' · ') }), table);
+  }
+
+  async function runSamples(selected = false) {
     if (running || !draftReady) return;
+    batchStopped = false;
     running = true;
     const epoch = runEpoch;
     if (live) await stopLive();
-    const list = samples();
+    let list;
+    try { list = await ui.cases.runs(selected); }
+    catch (error) { running = false; setStatus(error.message, 'err'); return; }
+    const groupName = list.some(c => !c.sample) ? '테스트' : '예제';
     if (!list.length) {
       running = false;
       showTab('term');
@@ -550,7 +662,7 @@
     showTab('term');
     saveDraft(false);
     ui.termOut.textContent = '';
-    termAppend(line('info', `${currentLang().name} · 예제 ${list.length}개 실행 중…`));
+    termAppend(line('info', `${currentLang().name} · ${groupName} ${list.length}개 실행 중…`));
     setStatus('실행 중…', 'busy');
 
     const out = await runInputs(list.map((s) => s.input), epoch).catch(() => ({ fatal: '실행 결과를 읽지 못했어요. 다시 실행해 주세요.' }));
@@ -567,19 +679,23 @@
     } else {
       termAppend(line('cmd', `${out.cmd}   [${out.where}]`));
       if (out.warnings) termAppend(block('컴파일 경고', out.warnings.trimEnd(), 'dim'));
-      let passed = 0, judged = 0;
+      let passed = 0, judged = 0, unjudgedErrors = 0;
       list.forEach((s, i) => {
         const res = out.results[i] || { stdout: '', stderr: '', note: '결과 없음' };
         let verdict, kind;
-        if (s.expected == null) { verdict = '출력 확인 필요'; kind = 'warn'; }
+        if (s.expected == null) {
+          verdict = res.note || '출력 확인 필요'; kind = res.note ? 'err' : 'warn';
+          if (res.note) unjudgedErrors++;
+        }
         else {
           judged++;
-          const ok = !res.note && normalize(res.stdout) === normalize(s.expected);
+          const ok = !res.note && outLines(res.stdout).join('\n') === outLines(s.expected).join('\n');
           if (ok) { passed++; verdict = SPJ ? '맞음 (스페셜 저지: 참고용)' : '맞음'; kind = 'ok'; }
           else { verdict = res.note || '틀림'; kind = 'err'; }
         }
         const time = res.ms != null ? `  (${(res.ms / 1000).toFixed(2)}초)` : '';
-        termAppend(line(kind, `${kind === 'ok' ? '✔' : kind === 'err' ? '✘' : '•'} 예제 ${s.n} — ${verdict}${time}`));
+        termAppend(line(kind, `${kind === 'ok' ? '✔' : kind === 'err' ? '✘' : '•'} ${s.name} — ${verdict}${time}`));
+        if (kind === 'err' && s.expected != null && !res.note) termAppend(diffView(s, res));
         if (kind !== 'ok') {
           termAppend(h('div', { class: 'tgrid' },
             block('입력', s.input.replace(/\n$/, '')),
@@ -587,13 +703,19 @@
             block('내 출력', res.stdout.replace(/\n$/, ''), kind === 'err' ? 'err' : '')));
         }
         if (res.stderr) termAppend(block('stderr', res.stderr.trimEnd(), 'dim'));
+        termAppend(h('details', { class: 'case-raw' }, h('summary', { text: '원본 입출력' }),
+          ...[['입력', s.input], ['기대 출력', s.expected], ['stdout', res.stdout], ['stderr', res.stderr]].filter(([,v]) => v != null)
+            .map(([title, raw]) => h('div', {}, h('small', { text: title }), h('pre', { text: raw })))));
       });
-      if (judged) {
+      if (unjudgedErrors) {
+        termAppend(line('err', '실행 오류 ' + unjudgedErrors + '개'));
+        setStatus('실행 실패', 'err');
+      } else if (judged) {
         const all = passed === judged;
         termAppend(line(all ? 'ok big' : 'err big', all
-          ? `예제 ${judged}개 모두 맞았어요! 🎉`
-          : `예제 ${judged}개 중 ${passed}개 맞음`));
-        setStatus(all ? '예제 통과' : `예제 ${passed}/${judged}`, all ? 'ok' : 'err');
+          ? `${groupName} ${judged}개 모두 맞았어요!`
+          : `${groupName} ${judged}개 중 ${passed}개 맞음`));
+        setStatus(all ? groupName + ' 통과' : `${groupName} ${passed}/${judged}`, all ? 'ok' : 'err');
       } else {
         setStatus('실행 완료', '');
       }
@@ -715,6 +837,15 @@
     if (cls) span.className = cls;
     span.textContent = text;
     live.pre.append(span);
+    live.chars = (live.chars || 0) + text.length;
+    while (live.pre.childNodes.length > 1200 || live.chars > 262144) {
+      const first = live.pre.firstChild;
+      if (!first) break;
+      if (first === span && first.textContent.length > 262144) {
+        first.textContent = first.textContent.slice(-262144); live.chars = 262144; break;
+      }
+      live.chars -= first.textContent.length; first.remove();
+    }
     ui.termOut.scrollTop = ui.termOut.scrollHeight;
   }
 
@@ -805,14 +936,12 @@
       return;
     }
     saveDraft(false);
-    const token = Math.random().toString(36).slice(2);
+    const token = crypto.randomUUID();
     submitToken = token;
     setCard('pending', '제출 탭을 여는 중…', `${PID}번 · ${currentLang().name}`);
     setStatus('제출 대기', 'busy');
-    // 코드를 먼저 저장한 뒤, 백그라운드에 제출 탭(B)을 열어 달라고 한다.
-    const pending = { pid: PID, langId: currentLang().id, langName: currentLang().name, code, codeOpen: settings.codeOpen, token, at: Date.now() };
-    Promise.resolve(ext.storage.local.set({ cbojPending: pending, cbojJudge: null }))
-      .then(() => ext.runtime.sendMessage({ type: 'cboj:open-submit', pid: PID, token, origin: location.origin }))
+    ext.runtime.sendMessage({ type: 'cboj:open-submit', pid: PID, token, user: me, code,
+      langId: currentLang().id, langName: currentLang().name, codeOpen: settings.codeOpen })
       .then((res) => {
         if (!res || !res.ok) throw new Error(res && res.error);
       })
@@ -833,6 +962,12 @@
         j.stage === 'closed' ? '결과는 제출 기록에서 확인할 수 있어요.' : '제출하지 않았어요.',
         j.stage === 'closed' ? h('a', { class: 'cboj-link', href: statusUrl, target: '_blank', text: '제출 기록 열기 →' }) : null);
       setStatus(j.stage === 'closed' ? '결과 확인 필요' : '', j.stage === 'closed' ? 'busy' : '');
+      return;
+    }
+    if (j.stage === 'unidentified') {
+      setCard('pending', '제출 기록에서 결과를 확인하세요', '같은 문제의 제출 탭이 여러 개 열려 제출 번호를 확인할 수 없어요.',
+        h('a', { class: 'cboj-link', target: '_blank', href: '/status?problem_id=' + PID + '&user_id=' + encodeURIComponent(me), text: '제출 기록 열기' }));
+      setStatus('결과 확인 필요');
       return;
     }
     if (j.stage === 'filled') {
@@ -856,10 +991,14 @@
 
   try {
     ext.storage.onChanged.addListener((changes, area) => {
-      if (area === 'local' && changes.cbojJudge) onJudge(changes.cbojJudge.newValue);
+
       if (area === 'local' && changes.cbojLangs && ui) adoptLanguages(changes.cbojLangs.newValue);
     });
   } catch { /* 무시 */ }
+
+  ext.runtime.onMessage.addListener((msg, sender) => {
+    if (sender.id === ext.runtime.id && msg?.type === 'cboj:judge') onJudge(msg.judge);
+  });
 
   // 제출 페이지에서 본 언어 목록(사용자가 백준에서 고른 언어들)을 쓴다.
   function adoptLanguages(list) {
@@ -877,10 +1016,14 @@
   let isOpen = false;
   let initializing;
   async function initializePanel() {
-    const saved = await store.get('local', { cbojLayout: layout, runnerChoice: 'auto', cbojLangs: null });
+    const saved = await store.get('local', { cbojLayout: layout, runnerChoice: 'auto', cbojLangs: null, workspaceSnippets: {}, ['panelTab:' + PID]: 'result' });
+    snippets = saved.workspaceSnippets;
     runnerChoice = saved.runnerChoice;
     layout = { ...layout, ...saved.cbojLayout };
     build();
+    const tab = saved['panelTab:' + PID];
+    showTab(['cases','term','problems','result'].includes(tab) ? tab : 'result', false);
+    if (isOpen) editor.connect().catch(() => {});
     ui.panel.hidden = !isOpen;
     applyLayout();
     if (saved.cbojLangs) adoptLanguages(saved.cbojLangs);
@@ -888,6 +1031,8 @@
     langId = (langs.find((l) => l.id === last.lastLangId) || langs.find((l) => l.name === last.lastLangName) || langs[0]).id;
     renderLangs();
     await loadDraft();
+    const session = await ext.runtime.sendMessage({ type: 'cboj:restore-submit' }).catch(() => null);
+    if (!submitToken && session?.token) { submitToken = session.token; onJudge(session.judge); }
   }
   async function open() {
     if (isOpen) return;
@@ -918,7 +1063,7 @@
   // 문제 제목 옆 버튼 + 오른쪽 가장자리 손잡이
   const toggleBtn = h('button', { type: 'button', class: 'btn btn-primary cboj-toggle', title: '코드 작성 화면 열기/닫기 (Alt+C)', text: '⇆ 코드 작성' });
   toggleBtn.addEventListener('click', toggle);
-  const group = $('.problem-button');
+  const group = BOJ.titleButtons();
   if (group) group.prepend(toggleBtn);
   else {
     toggleBtn.classList.add('floating');
@@ -926,6 +1071,8 @@
   }
 
   document.addEventListener('keydown', (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
+    if (e.key === 'Escape' && ui?.panel.classList.contains('focus')) setFocus(false);
     if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'c' || e.key === 'C' || e.code === 'KeyC')) {
       e.preventDefault();
       toggle();
@@ -949,7 +1096,12 @@
   // ───────── 설정 ─────────
   function applySettings(s) {
     settings = { ...DEFAULTS, ...s };
-    editor?.configure({ theme: settings.editorTheme, spaces: !useTabs(), minimap: !!settings.editorMinimap });
+    if (ui) {
+      const alternative = settings.shortcutProfile === 'tests';
+      ui.btnRun.title = alternative ? '전체 테스트 실행 (Ctrl+Shift+Enter)' : '전체 테스트 실행 (Ctrl+Enter)';
+      ui.btnSubmit.title = alternative ? '제출 페이지 열기 (Ctrl+Shift+S)' : '제출 페이지 열기 (Ctrl+Shift+Enter)';
+    }
+    editor?.configure({ theme: settings.editorTheme, spaces: !useTabs(), minimap: !!settings.editorMinimap, snippets, power: settings.powerMode === true, preset: settings.powerPreset, intensity: settings.powerIntensity, shake: settings.powerShake === true, keys: settings.shortcutProfile });
     if (ui) ui.panel.classList.toggle('dark', settings.editorTheme === 'dark');
   }
   store.get('sync', DEFAULTS).then((s) => {
@@ -958,6 +1110,7 @@
   });
   try {
     ext.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.workspaceSnippets) { snippets = changes.workspaceSnippets.newValue || {}; applySettings(settings); }
       if (area === 'local' && changes.runnerChoice) {
         runEpoch++;
         runnerChoice = changes.runnerChoice.newValue || 'auto';

@@ -10,7 +10,6 @@
     <img class="logo" src="../icons/icon48.png" alt="" width="36" height="36">
     <div class="title">
       <h1>Convenient BOJ</h1>
-      <p>문제 · 코드 · 실행 · 제출을 한 화면에서</p>
     </div>
   </header>
 
@@ -75,12 +74,30 @@
     <p class="hint"><code>$0</code> 자리에 커서가 놓여요. 새 문제를 처음 열 때와 [↺ 초기화]를 누를 때 쓰이고, 이미 작성한 코드는 바뀌지 않아요.</p>
   </section>
 
+  <details class="card tpl" id="snippet-settings"><summary>사용자 스니펫</summary>
+    <div class="row"><select id="snippet-lang" aria-label="스니펫 언어"><option value="cpp">C++</option><option value="c">C</option><option value="py">Python</option></select>
+    <select id="snippet-list" aria-label="저장된 스니펫"><option value="">새 스니펫</option></select></div>
+    <input id="snippet-prefix" aria-label="스니펫 접두어" placeholder="접두어" maxlength="48">
+    <textarea id="snippet-body" aria-label="스니펫 본문" spellcheck="false" placeholder="${1:값} · $0"></textarea>
+    <div class="tpl-bar"><output id="snippet-state" role="status"></output><button id="snippet-delete" class="mini">삭제</button><button id="snippet-save" class="mini primary">저장</button></div>
+  </details>
+  <section class="card">
+    <label class="toggle"><span><b>Power Mode</b></span><input type="checkbox" data-key="powerMode"><i></i></label>
+    <div id="power-options" hidden>
+      <div class="row"><label for="effect">효과</label><select id="effect" class="pick" data-key="powerPreset"><option value="spark">Spark</option><option value="aurora">Aurora</option><option value="pixel">Pixel</option></select></div>
+      <div class="row"><label for="intensity">강도</label><select id="intensity" class="pick" data-key="powerIntensity"><option value="low">낮게</option><option value="medium">보통</option><option value="high">높게</option></select></div>
+      <label class="toggle"><span>콤보 화면 흔들림</span><input type="checkbox" data-key="powerShake"><i></i></label>
+    </div>
+  </section>
   <section class="card keys">
-    <h2>단축키</h2>
+    <div class="row"><label for="key-profile">단축키</label><select class="pick" id="key-profile" data-key="shortcutProfile"><option value="classic">기존</option><option value="tests">테스트 중심</option></select></div>
     <dl>
       <dt>Alt + C</dt><dd>분할 화면 열기/닫기</dd>
-      <dt>Ctrl + Enter</dt><dd>예제로 실행</dd>
-      <dt>Ctrl + Shift + Enter</dt><dd>제출</dd>
+      <dt>Ctrl + Enter</dt><dd id="enter-action">전체 테스트</dd>
+      <dt>Ctrl + Shift + Enter</dt><dd id="shift-enter-action">제출 페이지 열기</dd>
+      <dt>Ctrl + Alt + Enter</dt><dd>선택 테스트</dd>
+      <dt>Ctrl + Shift + X</dt><dd>중지</dd>
+      <dt class="alternate" hidden>Ctrl + Shift + S</dt><dd class="alternate" hidden>제출 페이지 열기</dd>
       <dt>Ctrl + S</dt><dd>코드 저장</dd>
     </dl>
   </section>
@@ -88,5 +105,6 @@
 
   <script src="../shared/defaults.js"></script>
   <script src="popup.js"></script>
+  <script src="snippets.js"></script>
 </body>
 </html>

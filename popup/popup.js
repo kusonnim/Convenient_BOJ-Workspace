@@ -21,6 +21,11 @@
   }
 
   function render() {
+    document.getElementById('power-options').hidden = !s.powerMode;
+    const alternative = s.shortcutProfile === 'tests';
+    document.getElementById('enter-action').textContent = alternative ? '선택 테스트' : '전체 테스트';
+    document.getElementById('shift-enter-action').textContent = alternative ? '전체 테스트' : '제출 페이지 열기';
+    for (const label of document.querySelectorAll('.alternate')) label.hidden = !alternative;
     document.querySelectorAll('.seg[data-key]').forEach((seg) => {
       seg.querySelectorAll('button').forEach((b) => {
         b.setAttribute('aria-pressed', String(b.dataset.v === String(s[seg.dataset.key])));
@@ -130,7 +135,7 @@
 
   // ───────── 실행 위치 (내 PC 실행 도우미) ─────────
   const runnerState = document.getElementById('runnerState');
-  const GUIDE = 'https://github.com/gaudium1257/Convenient_BOJ#2단계-내-pc에서-실행-진짜-터미널-선택';
+  const GUIDE = 'https://github.com/kusonnim/Convenient_BOJ-Workspace#installation';
   function showRunner(info) {
     hostInfo = info;
     refreshDefault();

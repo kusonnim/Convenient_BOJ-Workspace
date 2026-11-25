@@ -97,3 +97,10 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; }
 .runner-state a { font-size: 11px; font-weight: 600; color: var(--accent); text-decoration: none; }
 .runner-state a:hover { text-decoration: underline; }
 .row:has(#runnerChoice) + .toggle { border-top: 1px dashed var(--line); }
+
+.card { border-radius: 4px; }
+.card summary { cursor: pointer; font-weight: 650; }
+#snippet-prefix, #snippet-list { max-width: 100%; }
+#snippet-prefix { width: 100%; margin: 5px 0; box-sizing: border-box; }
+#snippet-state { flex: 1; font-size: 11px; }
+#power-options[hidden], .alternate[hidden] { display: none; }

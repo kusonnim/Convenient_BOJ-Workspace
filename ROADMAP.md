@@ -1,6 +1,6 @@
 # Phase Roadmap
 
-Each phase ends at owner review. The reports record what passed and which checks remain open. P3.5 covers repository migration. P4 is the single remaining development phase and requires separate owner approval.
+Each phase ends at owner review. The reports record what passed and which checks remain open. P3.5 covers repository migration. P4 ends at the local review gate. P4.1 is being developed separately. Integration into the fork’s main branch and publication of local commits are deferred until P4.1 review and integration.
 
 | Phase | Scope | Suggested effort |
 | --- | --- | --- |
@@ -9,7 +9,7 @@ Each phase ends at owner review. The reports record what passed and which checks
 | [P2](docs/development/P2.md) | Monaco migration | High |
 | [P3](docs/development/P3.md) | clangd / LSP | Extra high |
 | [P3.5](docs/development/P3.5.md) | Official fork, history migration and documentation | High |
-| P4 (planned, final) | Test cases, snippets, optional Power Mode, workspace UI, submission isolation and final verification | Extra high |
+| [P4 · local review](docs/development/P4.md) | Test cases, snippets, optional Power Mode, workspace UI, submission isolation and final verification | Extra high |
 
 ## Mandatory BOJ account safety at every gate
 
@@ -36,7 +36,7 @@ Add constrained native LSP transport, tool discovery, MSVC compilation configura
 
 Back up and restore-check the local history, including P3. Verify GitHub's fork parent, the default branch, the original phase commits and the backup repository. Publish the verified P0–P3 history to the owner's fork with explicit branch pushes. Credit the original author in the README, show the P2/P3 captures, and verify the source-install link and offline regressions. Stop for review before P4.
 
-## P4 — Final workspace and verification (planned)
+## P4 — Final workspace and local verification
 
 | Work | Acceptance at the final gate |
 | --- | --- |

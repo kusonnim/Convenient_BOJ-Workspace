@@ -1,7 +1,7 @@
 html, body, #editor { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: transparent; }
 body { display: flex; flex-direction: column; color: #374151; font: 12px system-ui, sans-serif; }
-#editor { flex: 1; min-height: 0; }
+#editor { position: relative; flex: 1; min-height: 0; }
 #analysis-status { padding: 2px 9px; line-height: 16px; background: #f4f6f8; border-top: 1px solid #d8dee4; }
 body[data-theme=dark] { color-scheme: dark; color: #c9d1d9; }
 body[data-theme=dark] #analysis-status { background: #202329; border-color: #383d45; }
@@ -9,3 +9,8 @@ body[data-theme=dark] #analysis-status { background: #202329; border-color: #383
 #header-preview header { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 5px 9px; background: Canvas; }
 #header-preview pre { overflow: auto; margin: 0; padding: 8px; font: 13px/1.5 Consolas, monospace; }
 #header-preview button { font: inherit; }
+
+.typing-particles, .typing-combo { position: absolute; pointer-events: none; user-select: none; }
+.typing-particles { inset: 0; width: 100%; height: 100%; }
+.typing-combo { top: 14px; right: 25px; padding: 2px 8px; border-radius: 3px; background: #222837; font: 650 15px/1.5 Consolas, monospace; }
+@media (prefers-reduced-motion: reduce) { .typing-particles, .typing-combo { display: none; } }

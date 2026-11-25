@@ -1,0 +1,15 @@
+{
+  "before": "1.3.3",
+  "after": "1.4.1",
+  "id": "mabfdombglhmfnjklbnoglebinejifdi",
+  "preserved": [
+    "draft",
+    "cursor",
+    "scroll",
+    "template",
+    "compiler",
+    "theme",
+    "upstream cases"
+  ],
+  "powerDefault": false
+}

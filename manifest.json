@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Convenient BOJ - 편한 백준",
   "short_name": "Convenient BOJ",
-  "version": "1.3.3",
+  "version": "1.4.1",
   "description": "백준 문제 화면에서 코드 작성·실행(C/C++/Python)·제출·채점 결과 확인까지 한 번에.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2CMTzyqX1Qb9NU8JjYiqt4maP72Zxxb7/+2xGUiP4BGX4hAF0lwJMsQQ3IQBI9KsYaKNytUs1IMccwZHAlQQcfA8XsYZG6m5FMqA+GfZuzkN8LK4cCFT7tRvJtUGDxFnVfOxM6tTTKNfs0hQfP0q7wKL8sLGxoHK3n4owYX8bMrOQ2rtG6Y7B3CrXEH8KyOlejovcrgferwbgHzDeYgb4Zu4YZN7yQQ7eZctonHQ2mDAvetL0J/5OTr36JH6fwu9QLU9gBJc42vgjEDFQoRAZPEBgG31fCKbB/8qq42OX2y8JIR/Qa9eYqOpC5dIZTanTAtj4BqDqu1Y77h3Gk9EnwIDAQAB",
   "icons": {
@@ -39,6 +39,7 @@
         "shared/defaults.js",
         "shared/boj.js",
         "content/editor.js",
+        "content/cases.js",
         "content/split.js"
       ],
       "css": [
@@ -63,6 +64,7 @@
         "https://acmicpc.net/submit/*"
       ],
       "js": [
+        "shared/boj.js",
         "content/submit.js"
       ],
       "run_at": "document_idle"

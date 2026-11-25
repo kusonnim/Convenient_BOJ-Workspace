@@ -1,5 +1,7 @@
 import { editor, languages, Uri, MarkerSeverity } from '../vendor/monaco/editor.js';
 
+import { snippetSuggestions } from './snippets.js';
+
 const kinds = 'Text Method Function Constructor Field Variable Class Interface Module Property Unit Value Enum Keyword Snippet Color File Reference Folder EnumMember Constant Struct Event Operator TypeParameter'.split(' ');
 const severity = [null, MarkerSeverity.Error, MarkerSeverity.Warning, MarkerSeverity.Info, MarkerSeverity.Hint];
 const range = r => r && ({ startLineNumber: r.start.line + 1, startColumn: r.start.character + 1,
@@ -29,10 +31,11 @@ export class CppAnalysis {
       this.deferredDiagnostics = null;
     }));
     this.change = model.onDidChangeContent(() => {
+      this.completion = null;
       this.clearRequests();
       this.setMarkers([]);
       clearTimeout(this.debounce);
-      this.debounce = setTimeout(() => this.flush(), 110);
+      this.debounce = setTimeout(() => this.flush(), 55);
     });
     this.start();
   }
@@ -119,7 +122,10 @@ export class CppAnalysis {
   }
 
   setMarkers(markers) {
-    if (markers.length || this.hasMarkers) editor.setModelMarkers(this.model, 'clangd', markers);
+    if (markers.length || this.hasMarkers) {
+      editor.setModelMarkers(this.model, 'clangd', markers);
+      this.notify({ type: 'diagnostics', items: markers });
+    }
     this.hasMarkers = markers.length > 0;
   }
 
@@ -141,16 +147,19 @@ export class CppAnalysis {
     this.providers.push(languages.registerCompletionItemProvider({ ...selector, exclusive: true }, {
       triggerCharacters: ['.', ':', '>', '<', '"', '/'],
       provideCompletionItems: async (model, position, context, token) => {
-        const result = await this.request('completion', position, token);
-        if (!result) return;
+        const key = [model.getVersionId(), position.lineNumber, position.column].join('/');
+        const result = this.completion?.key === key ? this.completion.result : await this.request('completion', position, token);
+        if (token.isCancellationRequested) return;
+        if (!result) return { suggestions: snippetSuggestions(model, position) };
+        if (!result.incomplete && this.active) this.completion = { key, result };
         const word = model.getWordUntilPosition(position);
         const current = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber,
           startColumn: word.startColumn, endColumn: position.column };
-        return { incomplete: result.incomplete, suggestions: result.items.map(i => ({
+        return { incomplete: result.incomplete, suggestions: snippetSuggestions(model, position).concat(result.items.map(i => ({
           label: i.label, detail: i.detail, kind: languages.CompletionItemKind[kinds[i.kind - 1]] ?? languages.CompletionItemKind.Text,
           insertText: i.insert, filterText: i.filter || i.label, sortText: i.sort || i.label, range: range(i.range) || current,
           insertTextRules: i.snippet ? languages.CompletionItemInsertTextRule.InsertAsSnippet : 0,
-        })) };
+        }))) };
       },
     }), languages.registerSignatureHelpProvider(selector, {
       signatureHelpTriggerCharacters: ['(', ','], signatureHelpRetriggerCharacters: [','],
@@ -188,6 +197,7 @@ export class CppAnalysis {
   }
 
   stop() {
+    this.completion = null;
     clearTimeout(this.watchdog);
     clearTimeout(this.retry);
     this.clearRequests();

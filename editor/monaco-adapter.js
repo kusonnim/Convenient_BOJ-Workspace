@@ -1,4 +1,6 @@
 import { editor, languages, Uri, cpp, python } from '../vendor/monaco/editor.js';
+import { setSnippets, snippetSuggestions } from './snippets.js';
+import { PowerMode } from './power-mode.js';
 import { CppAnalysis } from './cpp-analysis.js';
 
 // Workers are created in this extension document's origin, with the default MV3 CSP.
@@ -22,6 +24,7 @@ for (const [id, grammar] of [['cpp', cpp], ['c', cpp], ['python', python]]) {
       { beforeText: /^\s*(?:pass|break|continue|raise\b.*|return\b.*)\s*(?:#.*)?$/, action: { indentAction: languages.IndentAction.Outdent } },
     ];
   } else {
+    configuration.onEnterRules.unshift({ beforeText: /^\s*(?:case\b.*|default)\s*:\s*(?:\/\/.*)?$/, action: { indentAction: languages.IndentAction.Indent } });
     configuration.indentationRules = { increaseIndentPattern: /^.*(?:\{[^}"']*|\([^)"']*)$/, decreaseIndentPattern: /^\s*[})]/ };
   }
   languages.setLanguageConfiguration(id, configuration);
@@ -32,7 +35,7 @@ for (const [id, grammar] of [['cpp', cpp], ['c', cpp], ['python', python]]) {
       const range = { startLineNumber: position.lineNumber, endLineNumber: position.lineNumber, startColumn: word.startColumn, endColumn: word.endColumn };
       const prefix = word.word.toLowerCase();
       const matches = words.filter(label => label.toLowerCase().startsWith(prefix));
-      return { suggestions: matches.map(label => ({ label, kind: languages.CompletionItemKind.Keyword, insertText: label, range })) };
+      return { suggestions: snippetSuggestions(model, position).concat(matches.map(label => ({ label, kind: languages.CompletionItemKind.Keyword, insertText: label, range }))) };
     },
   });
 }
@@ -96,6 +99,12 @@ export class MonacoWorkspace {
 
   configure(settings) {
     if (!this.view) return;
+    this.keys = settings.keys;
+    setSnippets(this.model, settings.snippets);
+    if (settings.power) {
+      this.effects ||= new PowerMode(this.view, this.container);
+      this.effects.settings = settings;
+    } else if (this.effects) { this.effects.dispose(); this.effects = null; }
     document.body.dataset.theme = settings.theme;
     editor.setTheme(settings.theme === 'dark' ? 'vs-dark' : 'vs');
     this.model.updateOptions({ tabSize: 4, insertSpaces: settings.spaces });
@@ -118,6 +127,8 @@ export class MonacoWorkspace {
     if (!this.view) return;
     const state = this.snapshot();
     this.savedView = this.view.saveViewState();
+    this.effects?.dispose();
+    this.effects = null;
     this.analysis?.dispose();
     this.analysis = null;
     for (const listener of this.listeners) listener.dispose();

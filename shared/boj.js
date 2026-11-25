@@ -1,4 +1,60 @@
-// 백준 채점 결과를 읽는 공통 함수 (status.js, split.js에서 사용)
+// 백준(acmicpc.net) 화면에 의존하는 부분을 모아 둔 곳.
+// 백준이 화면 구조를 바꾸면 여기만 고치면 되도록, 선택자와 읽는 함수를 한곳에 둔다.
+// (content/submit-main.js는 페이지 world에서 돌아서 이 파일을 못 읽으므로, submit.js가 선택자를 메시지로 넘겨준다)
+
+globalThis.CBOJ_SEL = Object.freeze({
+  // 문제 페이지 (/problem/번호)
+  problem: Object.freeze({
+    titleButtons: '.problem-button',          // 제목 옆 버튼 묶음 ([⇆ 코드 작성]을 넣는 곳)
+    specialJudge: '.problem-label-spj',       // '스페셜 저지' 라벨
+    sampleInput: 'pre[id^="sample-input-"]',  // 예제 입력
+    sampleInputPrefix: 'sample-input-',
+    sampleOutputPrefix: 'sample-output-',     // 예제 출력 (id = sample-output-번호)
+    username: 'meta[name="username"]',        // 로그인한 아이디
+  }),
+  // 제출 페이지 (/submit/번호)
+  submit: Object.freeze({
+    form: '#submit_form',
+    language: 'select[name="language"]',
+    codeOpen: 'input[name="code_open"]',
+    editor: '.CodeMirror',
+    source: 'textarea[name="source"]',
+    buttons: 'button, input[type="submit"]',
+  }),
+  // 채점 현황 (/status)
+  status: Object.freeze({
+    rows: '#status-table tbody tr',
+    rowIdPrefix: 'solution-',
+    result: '.result-text',
+    memory: 'td.memory',
+    time: 'td.time',
+    platform: 'td.judge-platform',
+  }),
+});
+
+globalThis.cbojBoj = Object.freeze({
+  username() {
+    const el = document.querySelector(globalThis.CBOJ_SEL.problem.username);
+    return (el && el.content) || '';
+  },
+  isSpecialJudge() {
+    return !!document.querySelector(globalThis.CBOJ_SEL.problem.specialJudge);
+  },
+  titleButtons() {
+    return document.querySelector(globalThis.CBOJ_SEL.problem.titleButtons);
+  },
+  // 문제의 예제 목록 [{ n, input, expected }]
+  samples() {
+    const S = globalThis.CBOJ_SEL.problem;
+    return [...document.querySelectorAll(S.sampleInput)].map((pre) => {
+      const n = pre.id.slice(S.sampleInputPrefix.length);
+      const out = document.getElementById(S.sampleOutputPrefix + n);
+      return { n, input: pre.textContent, expected: out ? out.textContent : null };
+    });
+  },
+});
+
+// 채점 결과 분류
 globalThis.CBOJ_FINAL = Object.freeze(['ac', 'pac', 'wa', 'pe', 'tle', 'mle', 'ole', 'rte', 'ce']);
 
 globalThis.cbojResultKey = (span, text) => {
@@ -21,13 +77,14 @@ globalThis.cbojResultKey = (span, text) => {
 // 채점 현황 표의 한 줄:
 // 제출 번호 | 아이디 | 문제 | 결과 | 메모리 | 시간 | (채점 서버) | 언어 | 코드 길이 | 제출한 시간
 globalThis.cbojParseRow = (tr) => {
+  const S = globalThis.CBOJ_SEL.status;
   const td = [...tr.querySelectorAll('td')];
-  const span = tr.querySelector('.result-text');
+  const span = tr.querySelector(S.result);
   const txt = (el) => ((el || {}).textContent || '').trim();
   const text = (span ? span.textContent : txt(td[3])).trim();
-  const langIdx = tr.querySelector('td.judge-platform') || td.length >= 10 ? 7 : 6;
-  const mem = txt(tr.querySelector('td.memory') || td[4]);
-  const time = txt(tr.querySelector('td.time') || td[5]);
+  const langIdx = tr.querySelector(S.platform) || td.length >= 10 ? 7 : 6;
+  const mem = txt(tr.querySelector(S.memory) || td[4]);
+  const time = txt(tr.querySelector(S.time) || td[5]);
   return {
     id: txt(td[0]),
     text,

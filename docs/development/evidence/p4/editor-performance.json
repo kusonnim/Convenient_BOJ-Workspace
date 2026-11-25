@@ -1,0 +1,85 @@
+{
+  "phase": "p4",
+  "chromeVersion": "158.0.8127.37",
+  "lines": 400,
+  "samples": [
+    {
+      "beforeTabHeapKiB": 2142,
+      "opens": [
+        {
+          "readyMs": 400,
+          "tabHeapKiB": 2508,
+          "frameHeapKiB": 12564,
+          "analysisReadyMs": 2193,
+          "frameWithAnalysisKiB": 13448
+        },
+        {
+          "readyMs": 84,
+          "tabHeapKiB": 3016,
+          "frameHeapKiB": 13655,
+          "analysisReadyMs": 1873,
+          "frameWithAnalysisKiB": 13840
+        }
+      ],
+      "afterClose": {
+        "tabHeapKiB": 2635,
+        "frameHeapKiB": 13949,
+        "views": 0,
+        "models": 0
+      },
+      "editorWorkersAfterClose": 0
+    },
+    {
+      "beforeTabHeapKiB": 2141,
+      "opens": [
+        {
+          "readyMs": 398,
+          "tabHeapKiB": 2499,
+          "frameHeapKiB": 12673,
+          "analysisReadyMs": 2387,
+          "frameWithAnalysisKiB": 12936
+        },
+        {
+          "readyMs": 85,
+          "tabHeapKiB": 3006,
+          "frameHeapKiB": 13431,
+          "analysisReadyMs": 2253,
+          "frameWithAnalysisKiB": 13492
+        }
+      ],
+      "afterClose": {
+        "tabHeapKiB": 2618,
+        "frameHeapKiB": 13610,
+        "views": 0,
+        "models": 0
+      },
+      "editorWorkersAfterClose": 0
+    },
+    {
+      "beforeTabHeapKiB": 2141,
+      "opens": [
+        {
+          "readyMs": 380,
+          "tabHeapKiB": 2499,
+          "frameHeapKiB": 12557,
+          "analysisReadyMs": 2253,
+          "frameWithAnalysisKiB": 12937
+        },
+        {
+          "readyMs": 77,
+          "tabHeapKiB": 3006,
+          "frameHeapKiB": 13480,
+          "analysisReadyMs": 1939,
+          "frameWithAnalysisKiB": 13537
+        }
+      ],
+      "afterClose": {
+        "tabHeapKiB": 2631,
+        "frameHeapKiB": 13655,
+        "views": 0,
+        "models": 0
+      },
+      "editorWorkersAfterClose": 0
+    }
+  ]
+}

@@ -2,6 +2,12 @@
 // 작성 중인 코드를 Wandbox(https://wandbox.org)에서 컴파일·실행해 준다.
 // 콘텐츠 스크립트에서 바로 부르면 CORS·권한 문제가 생길 수 있어 여기서 대신 요청한다.
 
+function httpError(status) {
+  if (status === 429) return '실행 서버(Wandbox)가 지금 너무 바빠요. 잠시 후 다시 실행해 주세요.';
+  if (status >= 500) return `실행 서버(Wandbox)에 일시적인 문제가 있어요 (HTTP ${status}). 잠시 후 다시 실행해 주세요.`;
+  return `실행 서버 응답 오류 (HTTP ${status})`;
+}
+
 const WANDBOX = 'https://wandbox.org/api';
 const FALLBACK = {
   c: 'gcc-13.2.0-c',
@@ -74,7 +80,7 @@ async function run({ lang, code, stdin }) {
       body: JSON.stringify({ compiler, code, stdin: stdin || '', 'compiler-option-raw': options.join('\n'), save: false }),
       signal: ctrl.signal,
     });
-    if (!res.ok) return { ok: false, error: `실행 서버 응답 오류 (HTTP ${res.status})`, compiler };
+    if (!res.ok) return { ok: false, error: httpError(res.status), compiler };
     const j = await res.json();
     return {
       ok: true,
@@ -98,70 +104,7 @@ async function run({ lang, code, stdin }) {
 // A(문제 + 분할 화면)에서 [제출] → 같은 창의 A 바로 옆에 제출 탭 B를 연다.
 // B에서 제출하면(채점 현황으로 넘어가면) A 탭으로 돌아오고,
 // B는 뒤에서 채점 결과를 읽어 A에 전달한 뒤 채점이 끝나면 닫는다.
-const SESSION_KEY = 'cbojSubmitTab';
-const getSub = async () => (await chrome.storage.session.get(SESSION_KEY))[SESSION_KEY] || null;
-const setSub = (v) => (v ? chrome.storage.session.set({ [SESSION_KEY]: v }) : chrome.storage.session.remove(SESSION_KEY));
-
-async function openSubmit(msg, sender) {
-  const old = await getSub();
-  if (old) {
-    await setSub(null); // 이전 탭이 닫혀도 '닫혔어요' 알림이 가지 않게 먼저 지운다
-    try { await chrome.tabs.remove(old.tabId); } catch { /* 이미 닫힘 */ }
-  }
-  // sender.tab.url은 tabs 권한이 없으면 비어 있을 수 있어서, 보낸 쪽이 알려 준 주소를 검사해 쓴다.
-  const origin = ['https://acmicpc.net', 'https://www.acmicpc.net'].includes(msg.origin) ? msg.origin : 'https://www.acmicpc.net';
-  if (!/^\d+$/.test(String(msg.pid))) return { ok: false, error: 'bad problem id' };
-  const tab = await chrome.tabs.create({
-    url: `${origin}/submit/${msg.pid}`,
-    windowId: sender.tab.windowId,
-    index: sender.tab.index + 1,
-    openerTabId: sender.tab.id,
-    active: true,
-  });
-  await setSub({
-    tabId: tab.id,
-    pid: String(msg.pid),
-    token: msg.token,
-    originTabId: sender.tab.id,
-    originWinId: sender.tab.windowId,
-    submitted: false,
-  });
-  return { ok: true };
-}
-
-async function isSubmitWindow(sender) {
-  const s = await getSub();
-  return !!(s && sender.tab && sender.tab.id === s.tabId);
-}
-
-async function focusOrigin(s) {
-  try { await chrome.tabs.update(s.originTabId, { active: true }); } catch { /* A 탭이 닫힘 */ }
-  try { await chrome.windows.update(s.originWinId, { focused: true }); } catch { /* A 창이 닫힘 */ }
-}
-
-async function onSubmitted(sender) {
-  const s = await getSub();
-  if (!s || sender.tab.id !== s.tabId || s.submitted) return { ok: true };
-  await setSub({ ...s, submitted: true });
-  await focusOrigin(s);
-  return { ok: true };
-}
-
-async function onJudgeDone(sender) {
-  const s = await getSub();
-  if (!s || sender.tab.id !== s.tabId) return { ok: true };
-  await setSub(null);
-  setTimeout(() => { chrome.tabs.remove(s.tabId).catch(() => {}); }, 1200);
-  return { ok: true };
-}
-
-// 채점이 끝나기 전에 사용자가 제출 탭을 닫은 경우 A에 알려 준다.
-chrome.tabs.onRemoved.addListener(async (tabId) => {
-  const s = await getSub();
-  if (!s || s.tabId !== tabId) return;
-  await setSub(null);
-  chrome.storage.local.set({ cbojJudge: { token: s.token, stage: s.submitted ? 'closed' : 'cancelled' } });
-});
+importScripts('shared/submission-sessions.js', 'shared/case-storage.js');
 
 // ───────── 내 PC 실행 도우미 연결 ─────────
 // 분할 화면(콘텐츠 스크립트)과 PC 도우미(host/cboj_host.py) 사이에서 메시지를 그대로 전달한다.
@@ -263,14 +206,17 @@ chrome.runtime.onConnect.addListener((port) => {
 importScripts('shared/analysis-port.js');
 
 const HANDLERS = {
+  'cboj:case-edit': caseStorage,
   'cboj:editor-tab': (_msg, sender) => sender.id === chrome.runtime.id && sender.frameId > 0
     && sender.url?.split('#')[0] === chrome.runtime.getURL('editor/frame.html') ? sender.tab?.id : null,
   'cboj:run': (msg, sender) => problemSender(sender) && msg.remoteConfirmed === true && validProgram(msg) && bytes(msg.stdin) <= runnerLimit
     ? run(msg) : { ok: false, error: 'Wandbox 전송 동의와 실행 요청을 확인해 주세요.' },
-  'cboj:open-submit': openSubmit,
-  'cboj:is-submit-window': async (_msg, sender) => ({ ok: true, isSubmitWindow: await isSubmitWindow(sender) }),
-  'cboj:submitted': (_msg, sender) => onSubmitted(sender),
-  'cboj:judge-done': (_msg, sender) => onJudgeDone(sender),
+  'cboj:open-submit': submissionSessions.open,
+  'cboj:claim-submit': submissionSessions.form,
+  'cboj:filled': submissionSessions.form,
+  'cboj:submitted': submissionSessions.form,
+  'cboj:judge-row': submissionSessions.form,
+  'cboj:restore-submit': submissionSessions.restore,
 };
 
 chrome.runtime.onMessage.addListener((msg, sender, respond) => {

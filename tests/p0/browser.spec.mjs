@@ -5,6 +5,12 @@ const cpp = '#include <iostream>\n\nint main() {\n    int a, b;\n    std::cin >>
 const verdict = page => page.locator('.cboj-status');
 const log = page => page.locator('.cboj-term-out');
 
+async function sessionRecord(lab, pid, prefix = 'cbojForm:') {
+  return lab.worker.evaluate(async ([pid,prefix]) => Object.entries(await chrome.storage.session.get(null))
+    .find(([key, value]) => key.startsWith(prefix) && value.pid === pid)?.[1], [pid,prefix]);
+}
+async function judge(lab) { return (await sessionRecord(lab, '1000', 'cbojOrigin:'))?.judge; }
+
 async function launchSubmit(lab, page) {
   await expect(page.locator('.cboj-btn.submit')).toBeEnabled();
   await editorInput(await editorFrame(page)).focus();
@@ -228,9 +234,10 @@ test('manual submit prefill, pending judge, focus return, final result and tab c
   await expect(tab.getByRole('button', { name: '제출' })).toBeFocused();
   expect(await tab.evaluate(() => window.fixtureSubmitCount)).toBe(0);
   expect(await stored(lab.worker, 'local', 'cbojPending')).toBeUndefined();
-  const session = await stored(lab.worker, 'session', 'cbojSubmitTab');
+  const session = await sessionRecord(lab, '1000');
   expect(session).toMatchObject({ pid: '1000', submitted: false });
-  await expect.poll(() => stored(lab.worker, 'local', 'cbojWatch')).toMatchObject({ token: session.token });
+  expect(session.pending).toBeUndefined();
+  await expect.poll(() => judge(lab)).toMatchObject({ token: session.token, stage: 'filled' });
   await tab.screenshot({ path: testInfo.outputPath('prefill.png') });
   await tab.goto(origin + '/status');
   await expect(page.locator('.cboj-card')).toContainText('채점 중 (20%)');
@@ -245,11 +252,11 @@ test('manual submit prefill, pending judge, focus return, final result and tab c
   });
   await expect(page.locator('.cboj-card.ac')).toContainText('맞았습니다!!');
   await expect(page.locator('.cboj-card a')).toHaveAttribute('href', '/source/93001');
-  await expect.poll(() => stored(lab.worker, 'local', 'cbojJudge')).toMatchObject({
+  await expect.poll(() => judge(lab)).toMatchObject({
     token: session.token, stage: 'done', key: 'ac', memory: '2048 KB', time: '4 ms', lang: 'C++17',
   });
   await expect.poll(() => tab.isClosed()).toBe(true);
-  expect(await stored(lab.worker, 'session', 'cbojSubmitTab')).toBeUndefined();
+  expect(await sessionRecord(lab, '1000')).toBeUndefined();
   expect(await stored(lab.worker, 'local', 'cbojWatch')).toBeUndefined();
   await page.screenshot({ path: testInfo.outputPath('judge.png') });
 });
@@ -271,29 +278,33 @@ test('unmanaged submit stays empty and closing the managed tab reports its lifec
   await expect(first.locator('textarea')).toHaveValue(cpp);
   await first.close();
   await expect(page.locator('.cboj-card')).toContainText('제출하지 않았어요');
-  expect((await stored(lab.worker, 'local', 'cbojJudge')).stage).toBe('cancelled');
+  expect((await judge(lab)).stage).toBe('cancelled');
   const second = await launchSubmit(lab, page);
   await second.goto(origin + '/status');
   await expect(page.locator('.cboj-card')).toContainText('채점 중 (20%)');
   await second.close();
   await expect(page.locator('.cboj-card a')).toHaveAttribute('href', /\/status\?problem_id=1000/);
-  expect((await stored(lab.worker, 'local', 'cbojJudge')).stage).toBe('closed');
+  expect((await judge(lab)).stage).toBe('closed');
 });
 
 test('two problem tabs can each keep a pending submission', async ({ lab }) => {
   const a = await problem(lab);
   await openPanel(a);
   const first = await launchSubmit(lab, a);
-  const original = await stored(lab.worker, 'session', 'cbojSubmitTab');
+  const original = await sessionRecord(lab, '1000');
   const b = await problem(lab, '1001');
   await openPanel(b);
   const second = await launchSubmit(lab, b);
-  const current = await stored(lab.worker, 'session', 'cbojSubmitTab');
+  const current = await sessionRecord(lab, '1001');
   expect(current.pid).toBe('1001');
   expect(current.token).not.toBe(original.token);
   expect(second.isClosed()).toBe(false);
   await expect(a.locator('.cboj-card')).toContainText('제출 탭에서 [제출]을 눌러주세요');
-  // Mark only the isolation assertion as an expected v1.3.3 failure.
-  test.fail(true, 'The single cbojSubmitTab slot replaces and closes the first submit tab.');
   expect(first.isClosed()).toBe(false);
+  await second.close();
+  await expect(b.locator('.cboj-card')).toContainText('제출하지 않았어요');
+  await expect(a.locator('.cboj-card')).toContainText('제출 탭에서');
+  await first.goto(origin + '/status');
+  await expect(a.locator('.cboj-card')).toContainText('채점 중 (20%)');
+  await expect(b.locator('.cboj-card')).toContainText('제출하지 않았어요');
 });
