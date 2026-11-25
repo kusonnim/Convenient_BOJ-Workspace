@@ -264,7 +264,7 @@
     const key = draftKey(info.family);
     const saved = (await store.get('local', { [key]: null }))[key];
     if (saved && typeof saved.code === 'string') {
-      await editor.setDocument({ problem: PID, language: info.kind, code: saved.code, cursor: saved.cursor, scroll: saved.scroll });
+      await editor.setDocument({ problem: PID, language: info.kind, standard: info.std, code: saved.code, cursor: saved.cursor, scroll: saved.scroll });
     } else {
       if (info.family === 'cpp' && typeof settings.templates?.cpp !== 'string' && runnerChoice === 'auto') await checkRunner();
       await setTemplate();
@@ -285,7 +285,7 @@
   }
   function setTemplate() {
     const t = templateFor(currentInfo().family);
-    return editor.setDocument({ problem: PID, language: currentInfo().kind, code: t.code,
+    return editor.setDocument({ problem: PID, language: currentInfo().kind, standard: currentInfo().std, code: t.code,
       cursor: t.line == null ? null : { line: t.line, ch: t.ch } });
   }
 

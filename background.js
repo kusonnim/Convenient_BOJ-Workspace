@@ -260,6 +260,8 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
+importScripts('shared/analysis-port.js');
+
 const HANDLERS = {
   'cboj:editor-tab': (_msg, sender) => sender.id === chrome.runtime.id && sender.frameId > 0
     && sender.url?.split('#')[0] === chrome.runtime.getURL('editor/frame.html') ? sender.tab?.id : null,

@@ -12,8 +12,8 @@ SIGNATURE = b'Convenient BOJ native workspace v2\n'
 
 
 @contextmanager
-def workspace():
-    with tempfile.TemporaryDirectory(prefix=f'cboj_p1_{os.getpid()}_') as temp:
+def workspace(prefix='cboj_p1'):
+    with tempfile.TemporaryDirectory(prefix=f'{prefix}_{os.getpid()}_') as temp:
         root = Path(temp).resolve()
         (root / MARKER).write_bytes(SIGNATURE)
         yield root
@@ -45,8 +45,8 @@ def owner_gone(pid):
 
 def reclaim_abandoned():
     root = Path(tempfile.gettempdir()).resolve()
-    for directory in root.glob('cboj_p1_*'):
-        match = re.fullmatch(r'cboj_p1_([1-9][0-9]{0,9})_[a-z0-9_]{8}', directory.name)
+    for directory in (*root.glob('cboj_p1_*'), *root.glob('cboj-lsp_*')):
+        match = re.fullmatch(r'(?:cboj_p1|cboj-lsp)_([1-9][0-9]{0,9})_[a-z0-9_]{8}', directory.name)
         if not match or int(match[1]) > 0x7fffffff or not owner_gone(int(match[1])):
             continue
         try:

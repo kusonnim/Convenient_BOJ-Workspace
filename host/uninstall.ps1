@@ -19,7 +19,7 @@ foreach ($base in 'HKCU:\Software\Google\Chrome\NativeMessagingHosts',
   Remove-Item -LiteralPath $key -Force
 }
 if (-not $keepFiles -and (Test-Path -LiteralPath $Dest)) {
-  foreach ($file in "$HostName.json", 'cboj_host.bat', 'cboj_host.py', 'toolchains.py', 'process_tree.py', 'workspace.py') {
+  foreach ($file in "$HostName.json", 'cboj_host.bat', 'cboj_host.py', 'toolchains.py', 'process_tree.py', 'workspace.py', 'clangd_tools.py', 'clangd_session.py') {
     $path = Join-Path $Dest $file
     if (Test-Path -LiteralPath $path -PathType Leaf) { Remove-Item -LiteralPath $path -Force }
   }

@@ -9,6 +9,11 @@
 </head>
 <body>
   <main id="editor" aria-label="코드 편집기"></main>
+  <output id="analysis-status" aria-live="polite" hidden></output>
+  <dialog id="header-preview" aria-labelledby="header-name">
+    <header><strong id="header-name"></strong><button type="button" aria-label="정의 미리보기 닫기">닫기</button></header>
+    <pre></pre>
+  </dialog>
   <script type="module" src="frame.js"></script>
 </body>
 </html>

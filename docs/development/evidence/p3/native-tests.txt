@@ -1,0 +1,12 @@
+test_cancellation_and_late_packets (__main__.Boundaries.test_cancellation_and_late_packets) ... ok
+test_frames_and_fixed_schema (__main__.Boundaries.test_frames_and_fixed_schema) ... ok
+test_uninstall_removes_only_project_files (__main__.Boundaries.test_uninstall_removes_only_project_files) ... ok
+test_forced_native_exit_reclaims_its_server_and_workspace (__main__.Clangd.test_forced_native_exit_reclaims_its_server_and_workspace) ... ok
+test_gcc_headers (__main__.Clangd.test_gcc_headers) ... ok
+test_gnu_competitive_template (__main__.Clangd.test_gnu_competitive_template) ... ok
+test_real_cpp (__main__.Clangd.test_real_cpp) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 15.897s
+
+OK

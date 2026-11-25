@@ -44,6 +44,7 @@
     }
 
     disconnect() {
+      this.closeAnalysis();
       clearTimeout(this.timer);
       const error = Error('코드 편집기에 연결하지 못했어요. 분할 화면을 다시 열어 주세요.');
       this.connectionFailed?.(error);
@@ -58,6 +59,10 @@
     receive(m) {
       if (!Number.isSafeInteger(m?.generation)) return;
       if (m.generation === this.generation && this.doc) {
+        if (m.type === 'analysis') {
+          this.analysisMessage(m);
+          return;
+        }
         if (typeof m.state?.code === 'string') {
           const { code, cursor, scroll } = m.state;
           Object.assign(this.doc, { code, cursor, scroll });
@@ -86,6 +91,35 @@
       }
     }
 
+    closeAnalysis() {
+      this.analysisPort?.disconnect();
+      this.analysisPort = null;
+    }
+
+    analysisMessage({ session, message }) {
+      if (!Number.isSafeInteger(session) || this.doc.language !== 'cpp') return;
+      if (message?.type === 'analysis-close') {
+        if (session === this.analysisSession) this.closeAnalysis();
+        return;
+      }
+      if (!this.visible) return;
+      if (message?.type === 'analysis-open') {
+        this.closeAnalysis();
+        this.analysisSession = session;
+        const port = this.analysisPort = chrome.runtime.connect({ name: 'cboj-analysis' });
+        port.onMessage.addListener(message => {
+          if (this.analysisPort === port) this.send('analysis', { session, message });
+        });
+        port.onDisconnect.addListener(() => {
+          void chrome.runtime.lastError;
+          if (this.analysisPort !== port) return;
+          this.analysisPort = null;
+          this.send('analysis', { session, message: { type: 'analysis-lost' } });
+        });
+      }
+      if (session === this.analysisSession && this.analysisPort) this.analysisPort.postMessage(message);
+    }
+
     send(type, extra = {}) { this.port?.postMessage({ type, generation: this.generation, ...extra }); }
     request(type, extra) {
       const id = ++this.sequence;
@@ -107,6 +141,7 @@
     layout() { this.send('layout'); }
 
     async setDocument(doc) {
+      this.closeAnalysis();
       this.generation++;
       this.doc = { ...doc };
       this.canResume = false;

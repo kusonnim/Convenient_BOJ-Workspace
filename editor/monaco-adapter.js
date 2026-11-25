@@ -1,4 +1,5 @@
 import { editor, languages, Uri, cpp, python } from '../vendor/monaco/editor.js';
+import { CppAnalysis } from './cpp-analysis.js';
 
 // Workers are created in this extension document's origin, with the default MV3 CSP.
 globalThis.MonacoEnvironment = {
@@ -62,7 +63,7 @@ export class MonacoWorkspace {
       detectIndentation: false, tabSize: 4, insertSpaces: settings.spaces, autoIndent: 'full', renderWhitespace: 'boundary',
       autoIndentOnPaste: false, formatOnPaste: false,
       dragAndDrop: true, columnSelection: false, multiCursorModifier: 'alt', folding: true,
-      wordBasedSuggestions: 'currentDocument', links: false,
+      wordBasedSuggestions: 'currentDocument', acceptSuggestionOnEnter: 'smart', links: false,
       automaticHighContrastDetection: false, lightbulb: { enabled: 'off' },
     });
     this.configure(settings);
@@ -88,12 +89,14 @@ export class MonacoWorkspace {
       this.view.onDidChangeCursorSelection(() => this.notify({ type: 'view', ...this.position() })),
       this.view.onDidScrollChange(() => this.notify({ type: 'view', ...this.position() })),
     ];
+    if (doc.language === 'cpp') this.analysis = new CppAnalysis(model, this.view, doc.standard, this.notify);
     this.view.focus();
     return this.snapshot();
   }
 
   configure(settings) {
     if (!this.view) return;
+    document.body.dataset.theme = settings.theme;
     editor.setTheme(settings.theme === 'dark' ? 'vs-dark' : 'vs');
     this.model.updateOptions({ tabSize: 4, insertSpaces: settings.spaces });
     this.view.updateOptions({ minimap: { enabled: settings.minimap } });
@@ -115,6 +118,8 @@ export class MonacoWorkspace {
     if (!this.view) return;
     const state = this.snapshot();
     this.savedView = this.view.saveViewState();
+    this.analysis?.dispose();
+    this.analysis = null;
     for (const listener of this.listeners) listener.dispose();
     this.view.dispose();
     this.model.dispose();

@@ -1,4 +1,4 @@
-export { editor, languages, Uri } from 'monaco-editor/esm/vs/editor/editor.api.js';
+export { editor, languages, Uri, MarkerSeverity } from 'monaco-editor/esm/vs/editor/editor.api.js';
 import 'monaco-editor/esm/vs/base/browser/ui/codicons/codicon/codicon.css';
 import 'monaco-editor/esm/vs/editor/browser/coreCommands.js';
 import 'monaco-editor/esm/vs/editor/contrib/bracketMatching/browser/bracketMatching.js';
@@ -8,6 +8,10 @@ import 'monaco-editor/esm/vs/editor/contrib/contextmenu/browser/contextmenu.js';
 import 'monaco-editor/esm/vs/editor/contrib/dnd/browser/dnd.js';
 import 'monaco-editor/esm/vs/editor/contrib/find/browser/findController.js';
 import 'monaco-editor/esm/vs/editor/contrib/folding/browser/folding.js';
+import 'monaco-editor/esm/vs/editor/contrib/gotoSymbol/browser/goToCommands.js';
+import 'monaco-editor/esm/vs/editor/contrib/gotoSymbol/browser/link/goToDefinitionAtPosition.js';
+import 'monaco-editor/esm/vs/editor/contrib/hover/browser/hoverContribution.js';
+import 'monaco-editor/esm/vs/editor/contrib/parameterHints/browser/parameterHints.js';
 import 'monaco-editor/esm/vs/editor/contrib/indentation/browser/indentation.js';
 import 'monaco-editor/esm/vs/editor/contrib/linesOperations/browser/linesOperations.js';
 import 'monaco-editor/esm/vs/editor/contrib/lineSelection/browser/lineSelection.js';

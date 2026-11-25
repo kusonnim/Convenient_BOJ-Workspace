@@ -189,6 +189,13 @@ def main():
             msg = read_message()
             if msg is None:
                 break
+            if msg == {'type': 'analysis-info'} and tools is None and job is None:
+                send(dict(type='analysis-info', version=1))
+                continue
+            if isinstance(msg, dict) and msg.get('type') == 'analysis-open' and tools is None and job is None:
+                from clangd_session import serve
+                serve(msg, read_message, send)
+                return
             try:
                 validate(msg)
                 kind = msg['type']

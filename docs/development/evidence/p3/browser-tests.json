@@ -1,0 +1,218 @@
+{
+  "p0": [
+    {
+      "name": "split toggle, statement identity and both persisted resize handles",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 8823,
+      "retries": 0
+    },
+    {
+      "name": "old drafts, template cursor, language families and explicit save survive reload",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 1507,
+      "retries": 0
+    },
+    {
+      "name": "popup saves a template for fresh problems and preserves the previous value on quota rejection",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 1173,
+      "retries": 0
+    },
+    {
+      "name": "native batch UI distinguishes normalized pass, mismatch, compiler and runtime errors",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 1276,
+      "retries": 0
+    },
+    {
+      "name": "missing host uses Wandbox fixtures for C, C++ and Python, including run-only samples",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 1430,
+      "retries": 0
+    },
+    {
+      "name": "interactive input, composing Enter, separate stderr, EOF and stop use the same job ID",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 968,
+      "retries": 0
+    },
+    {
+      "name": "manual submit prefill, pending judge, focus return, final result and tab cleanup",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 4296,
+      "retries": 0
+    },
+    {
+      "name": "unmanaged submit stays empty and closing the managed tab reports its lifecycle stage",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 4678,
+      "retries": 0
+    },
+    {
+      "name": "two problem tabs can each keep a pending submission",
+      "expected": "failed",
+      "actual": "failed",
+      "result": "expected",
+      "durationMs": 4239,
+      "retries": 0
+    }
+  ],
+  "p1": [
+    {
+      "name": "registered MSVC, samples, UTF-8, cache identity, diagnostics and explicit GCC",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 62814,
+      "retries": 0
+    },
+    {
+      "name": "real terminal input, EOF, stop, simultaneous tabs and disconnect cleanup",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 61345,
+      "retries": 0
+    },
+    {
+      "name": "batch stop and timeout release the registered runner for another job",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 33142,
+      "retries": 0
+    },
+    {
+      "name": "host compatibility and user choice / old host offers repair and keeps GCC available",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 729,
+      "retries": 0
+    },
+    {
+      "name": "host compatibility and user choice / missing compiler offers an explicit remote choice",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 766,
+      "retries": 0
+    }
+  ],
+  "p2": [
+    {
+      "name": "mouse selection moves text, creates multiple cursors and edits a column",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 1931,
+      "retries": 0
+    },
+    {
+      "name": "indentation, paired brackets, line actions, folding, find/replace and history",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 1576,
+      "retries": 0
+    },
+    {
+      "name": "keyword and document completions, local worker, collapse/reopen and navigation cleanup",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 1991,
+      "retries": 0
+    },
+    {
+      "name": "Korean browser composition, UTF-16 selection and old scroll/draft recovery",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 1213,
+      "retries": 0
+    },
+    {
+      "name": "unedited legacy bytes, fast navigation and language-specific editing survive a round trip",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 2571,
+      "retries": 0
+    },
+    {
+      "name": "browser history / Back restores the last edit and exactly one editable model",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 1133,
+      "retries": 0
+    },
+    {
+      "name": "installed runner and appearance / Monaco C++ runs on local MSVC in light and dark themes",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 10910,
+      "retries": 0
+    }
+  ],
+  "p3": [
+    {
+      "name": "absent server and legacy host keep P2 editing, basic completion and runner routing",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 1025,
+      "retries": 0
+    },
+    {
+      "name": "registered language server / Wandbox selection, STL and user symbols, signatures, navigation, live UTF-16 errors and timing",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 17151,
+      "retries": 0
+    },
+    {
+      "name": "registered language server / same-problem tabs, server crash, rapid edits and repeated close release all resources",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 43577,
+      "retries": 0
+    },
+    {
+      "name": "registered language server / changing the draft cancels a real completion and rejects delayed native replies",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 5447,
+      "retries": 0
+    },
+    {
+      "name": "registered language server / a missing-server capability preserves real MSVC execution",
+      "expected": "passed",
+      "actual": "passed",
+      "result": "expected",
+      "durationMs": 15482,
+      "retries": 0
+    }
+  ]
+}

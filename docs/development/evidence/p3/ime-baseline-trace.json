@@ -1,0 +1,146 @@
+{
+  "baseline": "522ae9c",
+  "expected": "하",
+  "observed": "\n하",
+  "inputMethod": "EditContext",
+  "stages": {
+    "initial": "",
+    "first": "gk",
+    "cleared": "",
+    "toggled": ""
+  },
+  "trace": [
+    {
+      "key": "g",
+      "code": "KeyG",
+      "keyCode": 71,
+      "composing": false
+    },
+    {
+      "changes": [
+        [
+          0,
+          0,
+          "g"
+        ]
+      ]
+    },
+    {
+      "key": "k",
+      "code": "KeyK",
+      "keyCode": 75,
+      "composing": false
+    },
+    {
+      "changes": [
+        [
+          1,
+          0,
+          "k"
+        ]
+      ]
+    },
+    {
+      "key": "Control",
+      "code": "ControlLeft",
+      "keyCode": 17,
+      "composing": false
+    },
+    {
+      "key": "a",
+      "code": "KeyA",
+      "keyCode": 65,
+      "composing": false
+    },
+    {
+      "key": "Backspace",
+      "code": "Backspace",
+      "keyCode": 8,
+      "composing": false
+    },
+    {
+      "changes": [
+        [
+          0,
+          2,
+          ""
+        ]
+      ]
+    },
+    {
+      "key": "Control",
+      "code": "",
+      "keyCode": 17,
+      "composing": false
+    },
+    {
+      "key": "c",
+      "code": "",
+      "keyCode": 67,
+      "composing": false
+    },
+    {
+      "key": "Control",
+      "code": "",
+      "keyCode": 17,
+      "composing": false
+    },
+    {
+      "key": "c",
+      "code": "",
+      "keyCode": 67,
+      "composing": false
+    },
+    {
+      "key": "Control",
+      "code": "",
+      "keyCode": 17,
+      "composing": false
+    },
+    {
+      "key": "v",
+      "code": "",
+      "keyCode": 86,
+      "composing": false
+    },
+    {
+      "changes": [
+        [
+          0,
+          0,
+          "\n"
+        ]
+      ]
+    },
+    {
+      "key": "Process",
+      "code": "KeyG",
+      "keyCode": 229,
+      "composing": false
+    },
+    {
+      "changes": [
+        [
+          1,
+          0,
+          "ㅎ"
+        ]
+      ]
+    },
+    {
+      "key": "Process",
+      "code": "KeyK",
+      "keyCode": 229,
+      "composing": false
+    },
+    {
+      "changes": [
+        [
+          1,
+          1,
+          "하"
+        ]
+      ]
+    }
+  ]
+}

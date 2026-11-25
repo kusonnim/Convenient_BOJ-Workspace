@@ -23,6 +23,7 @@ async function start() {
       doc = m.doc;
       state = workspace.open(doc, m.settings, m.resume);
     } else if (m.generation === generation && workspace) {
+      if (m.type === 'analysis') workspace.analysis?.receive(m.session, m.message);
       if (m.type === 'suspend') state = workspace.suspend();
       if (m.type === 'read') state = workspace.snapshot();
       if (m.type === 'config') workspace.configure(m.settings);

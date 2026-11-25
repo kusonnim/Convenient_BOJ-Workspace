@@ -12,7 +12,7 @@ const packageFiles = ['manifest.json', 'background.js', 'content', 'editor', 'po
 // Only the two external endpoints of background.js are doubled. Chrome owns
 // both script worlds, storage, tab selection, runtime messages and tab ports.
 function installDoubles() {
-  const io = self.fixtureIO = { native: null, nativeCalls: [], remote: {}, remoteCalls: [] };
+  const io = self.fixtureIO = { native: null, nativeCalls: [], analysisCalls: [], remote: {}, remoteCalls: [] };
   chrome.runtime.connectNative = name => {
     if (name !== 'com.convenient_boj.runner' || !io.native) throw Error('Fixture host unavailable');
     let deliver;
@@ -21,6 +21,13 @@ function installDoubles() {
       onDisconnect: { addListener() {} },
       disconnect() {},
       postMessage(message) {
+        if (message.type.startsWith('analysis-')) {
+          io.analysisCalls.push(message);
+          if (message.type === 'analysis-info') deliver(io.analysis
+            ? { type: 'analysis-info', version: 1 } : { type: 'error', error: 'unsupported command' });
+          if (message.type === 'analysis-open' && io.analysis) deliver({ type: 'analysis-unavailable', reason: io.analysis });
+          return;
+        }
         io.nativeCalls.push(message);
         for (const reply of io.native[message.type] || []) {
           deliver({ id: message.id, ...reply });
@@ -109,6 +116,9 @@ export async function openPanel(page) {
   await page.locator('.cboj-toggle').click();
   await expect(page.locator('#cboj-panel')).toBeVisible();
   await expect(page.locator('.cboj-lang option:checked')).toHaveCount(1);
+  // A fresh automatic C++ template awaits the P1 compiler probe (45 s).
+  // The language control becomes enabled once the document has been chosen.
+  await expect(page.locator('.cboj-lang')).toBeEnabled({ timeout: 50000 });
   await focusedEditor(page);
 }
 

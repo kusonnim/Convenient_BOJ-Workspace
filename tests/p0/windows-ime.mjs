@@ -17,7 +17,7 @@ const context = await chromium.launchPersistentContext('', {
 let toggled = false, key;
 try {
   const browser = await context.browser().newBrowserCDPSession();
-  await browser.send('Extensions.loadUnpacked', { path: path.resolve(here, '../..') });
+  await browser.send('Extensions.loadUnpacked', { path: path.resolve(process.argv[2] || path.join(here, '../..')) });
   const sw = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   await sw.evaluate(() => chrome.storage.local.set({ 'draft:1000:cpp': { code: '', cursor: { line: 0, ch: 0 } } }));
   const page = await context.newPage();
@@ -32,6 +32,13 @@ try {
   key = action => promisify(execFile)(process.env.CBOJ_TEST_PYTHON || 'python',
     ['-B', path.join(here, 'windows-ime-input.py'), String(pid), title, action], { windowsHide: true });
   const inputMethod = await observeComposition(frame);
+  await frame.evaluate(async () => {
+    const { editor } = await import('/vendor/monaco/editor.js');
+    const view = editor.getEditors()[0];
+    window.imeTrace = [];
+    addEventListener('keydown', e => window.imeTrace.push({ key: e.key, code: e.code, keyCode: e.keyCode, composing: e.isComposing }), true);
+    view.onDidChangeModelContent(e => window.imeTrace.push({ changes: e.changes.map(c => [c.rangeOffset, c.rangeLength, c.text]) }));
+  });
   const value = () => frame.evaluate(async () => (await import('/vendor/monaco/editor.js')).editor.getModels()[0].getValue());
   const stages = { initial: await value() };
   assert.equal(stages.initial, '');
@@ -48,7 +55,8 @@ try {
     await key('first');
   }
   const preedit = await value();
-  assert.equal(preedit, '하', JSON.stringify({ inputMethod, stages, preedit, events: await frame.evaluate(() => window.testComposition) }));
+  assert.equal(preedit, '하', JSON.stringify({ inputMethod, stages, preedit, events: await frame.evaluate(() => window.testComposition),
+    trace: await frame.evaluate(() => window.imeTrace) }));
   await key('finish');
   assert.equal(await value(), '한글 ');
   const events = await frame.evaluate(() => window.testComposition);
