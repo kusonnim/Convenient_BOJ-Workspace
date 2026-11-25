@@ -1,0 +1,33 @@
+P0 browser results
+npm.cmd --prefix tests/p0 test -- --repeat-each=2 --reporter=list,json
+Started 2026-11-25T12:58:29.156Z
+Case | Expected | Run 1 | Run 2
+split toggle, statement identity and both persisted resize handles | passed | passed | passed
+old drafts, template cursor, language families and explicit save survive reload | passed | passed | passed
+popup saves a template for fresh problems and preserves the previous value on quota rejection | passed | passed | passed
+native batch UI distinguishes normalized pass, mismatch, compiler and runtime errors | passed | passed | passed
+missing host uses Wandbox fixtures for C, C++ and Python, including run-only samples | passed | passed | passed
+interactive input, composing Enter, separate stderr, EOF and stop use the same job ID | passed | passed | passed
+manual submit prefill, pending judge, focus return, final result and tab cleanup | passed | passed | passed
+unmanaged submit stays empty and closing the managed tab reports its lifecycle stage | passed | passed | passed
+two problem tabs can each keep a pending submission | failed | failed | failed
+Unexpected 0, flaky 0, skipped 0.
+
+P0 native results
+python tests/p0/native_test.py
+test_batch_timeout (__main__.NativeBaseline.test_batch_timeout) ... ok
+test_c_batch (__main__.NativeBaseline.test_c_batch) ... ok
+test_compiler_diagnostic (__main__.NativeBaseline.test_compiler_diagnostic) ... ok
+test_cpp_batch (__main__.NativeBaseline.test_cpp_batch) ... ok
+test_disconnect_during_interactive_run (__main__.NativeBaseline.test_disconnect_during_interactive_run) ... Job directories remaining after host disconnect: 1
+ok
+test_info (__main__.NativeBaseline.test_info) ... Host inventory {"type": "info", "version": "1.0.0", "python": "3.14.3", "gcc": "gcc.EXE (Rev4, Built by MSYS2 project) 16.2.0", "gpp": "g++.EXE (Rev4, Built by MSYS2 project) 16.2.0"}
+ok
+test_interactive_input_eof_and_separate_streams (__main__.NativeBaseline.test_interactive_input_eof_and_separate_streams) ... ok
+test_interactive_stop (__main__.NativeBaseline.test_interactive_stop) ... ok
+test_python_output_and_runtime_error (__main__.NativeBaseline.test_python_output_and_runtime_error) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 5.251s
+
+OK

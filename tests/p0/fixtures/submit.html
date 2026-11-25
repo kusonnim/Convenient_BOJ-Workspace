@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<title>제출 · 로컬 테스트</title>
+<link rel="stylesheet" href="/fixtures/codemirror.css">
+<style>
+  body { margin: 32px; color: #333; font: 16px/1.6 "Malgun Gothic", sans-serif; }
+  label, fieldset { display: block; margin: 14px 0; }
+  textarea { display: block; width: min(740px, 90%); height: 220px; }
+</style>
+<p>로컬 테스트 페이지 · 제출</p>
+<form id="submit_form">
+  <label>언어 <select name="language">
+    <option value="75">C11</option><option value="84">C++17</option>
+    <option value="95">C++20</option><option value="28">Python 3</option>
+    <option value="17">Java</option>
+  </select></label>
+  <fieldset><legend>소스 공개</legend>
+    <input type="radio" name="code_open" value="open" checked> 공개
+    <input type="radio" name="code_open" value="close"> 비공개
+  </fieldset>
+  <label>소스 코드<textarea name="source"></textarea></label>
+  <button type="submit">제출</button>
+</form>
+<script src="/fixtures/codemirror.js"></script>
+<script>
+  if (!window.fixturePlainSubmit) {
+    CodeMirror.fromTextArea(document.querySelector('textarea'), { lineNumbers: true });
+  }
+  window.fixtureSubmitCount = 0;
+  document.querySelector('form').addEventListener('submit', event => {
+    event.preventDefault();
+    window.fixtureSubmitCount++;
+  });
+</script>
+</html>
