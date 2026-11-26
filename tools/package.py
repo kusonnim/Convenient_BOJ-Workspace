@@ -14,7 +14,10 @@ RUNTIME = ['manifest.json', 'background.js', 'content', 'editor', 'popup', 'shar
 def build(revision, output):
     commit = subprocess.check_output(['git', 'rev-parse', '--verify', '--end-of-options', revision + '^{commit}'],
                                      cwd=ROOT, text=True).strip()
-    blob = subprocess.check_output(['git', 'archive', '--format=zip', commit, '--', *RUNTIME, 'host'], cwd=ROOT)
+    # Use canonical source bytes on every workstation. Tracked attributes still
+    # give the Windows launchers CRLF and preserve the generated Monaco bundle.
+    blob = subprocess.check_output(['git', '-c', 'core.autocrlf=false', '-c', 'core.eol=lf',
+                                    'archive', '--format=zip', commit, '--', *RUNTIME, 'host'], cwd=ROOT)
     output.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(io.BytesIO(blob)) as source:
         files = sorted(entry.filename for entry in source.infolist() if not entry.is_dir())
