@@ -75,6 +75,26 @@ test('upstream Java drafts, templates, backup, completion preference and managed
   expect((await stored(lab.worker, 'local', 'draft:1001:cpp'))?.code).not.toBe('pub');
 });
 
+test('managed Java forms handle a changed language ID and an unavailable Java release', async ({ lab }) => {
+  const html = await readFile(new URL('./fixtures/submit.html', import.meta.url), 'utf8');
+  const marker = '<option value="93">Java 11</option>';
+  expect(html).toContain(marker);
+  for (const [pid, option, selected, notice] of [
+    ['1100', '<option value="333">Java 11</option>', '333', '코드를 채워 두었어요'],
+    ['1101', '<option value="93">Java 17</option>', '75', 'Java 11 언어가 목록에 없어요'],
+  ]) {
+    await lab.worker.evaluate(() => chrome.storage.local.remove('cbojLangs'));
+    const p = await javaProblem(lab, pid); await loadCode(p, 'public class Main {}');
+    await lab.context.route(origin + '/submit/' + pid, route => route.request().method() === 'GET'
+      ? route.fulfill({ body: html.replace(marker, option), contentType: 'text/html; charset=utf-8' }) : route.abort());
+    const tab = await form(lab, p);
+    await expect(tab.locator('#cboj-banner')).toContainText(notice);
+    await expect(tab.locator('select')).toHaveValue(selected);
+    expect(await tab.locator('.CodeMirror').evaluate(el => el.CodeMirror.getValue())).toBe('public class Main {}');
+    await tab.close(); await p.close();
+  }
+});
+
 test('stack preference reaches capable Windows compilers and an older helper keeps its original messages', async ({ lab }) => {
   await lab.worker.evaluate(() => {
     self.fixtureIO.native = {
