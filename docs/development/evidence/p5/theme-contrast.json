@@ -1,0 +1,68 @@
+{
+  "chrome": "158.0.8127.37",
+  "info": {
+    "protocol": 2,
+    "type": "info",
+    "version": "2.1.0",
+    "python": "3.14.3",
+    "javac": "javac 27",
+    "stackSizeMiB": true,
+    "gcc": "gcc.EXE (Rev4, Built by MSYS2 project) 16.2.0",
+    "gpp": "g++.EXE (Rev4, Built by MSYS2 project) 16.2.0",
+    "msvc": "195136260",
+    "msvcStandards": [
+      "c++17",
+      "c++20"
+    ]
+  },
+  "reports": [
+    {
+      "theme": "light",
+      "fg": "rgb(25, 112, 59)",
+      "bg": "rgb(243, 243, 243)",
+      "contrast": 5.5302522827495
+    },
+    {
+      "theme": "dark",
+      "fg": "rgb(137, 209, 133)",
+      "bg": "rgb(37, 37, 38)",
+      "contrast": 8.402780439390302
+    },
+    {
+      "theme": "one-dark",
+      "fg": "rgb(165, 224, 117)",
+      "bg": "rgb(33, 37, 43)",
+      "contrast": 9.910001072821009
+    },
+    {
+      "theme": "dracula",
+      "fg": "rgb(105, 255, 148)",
+      "bg": "rgb(33, 34, 44)",
+      "contrast": 12.281315184967012
+    },
+    {
+      "theme": "monokai",
+      "fg": "rgb(166, 226, 46)",
+      "bg": "rgb(30, 31, 28)",
+      "contrast": 10.67803585268903
+    },
+    {
+      "theme": "nord",
+      "fg": "rgb(163, 190, 140)",
+      "bg": "rgb(46, 52, 64)",
+      "contrast": 6.126674054079218
+    },
+    {
+      "theme": "github-dark",
+      "fg": "rgb(133, 232, 157)",
+      "bg": "rgb(31, 36, 40)",
+      "contrast": 10.458003541962215
+    },
+    {
+      "theme": "tokyo-night",
+      "fg": "rgb(115, 218, 202)",
+      "bg": "rgb(22, 22, 30)",
+      "contrast": 10.80001991839444
+    }
+  ]
+}

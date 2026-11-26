@@ -1,0 +1,83 @@
+{
+  "f5fd0b4": {
+    "before": "1.3.3",
+    "after": "1.5.0",
+    "id": "mabfdombglhmfnjklbnoglebinejifdi",
+    "preserved": [
+      "draft",
+      "cursor",
+      "scroll",
+      "template",
+      "compiler",
+      "theme",
+      "upstream cases"
+    ],
+    "powerDefault": false
+  },
+  "cfb8499": {
+    "before": "1.4.0",
+    "after": "1.5.0",
+    "id": "mabfdombglhmfnjklbnoglebinejifdi",
+    "preserved": [
+      "draft",
+      "cursor",
+      "scroll",
+      "template",
+      "compiler",
+      "theme",
+      "upstream cases",
+      "Java CRLF draft and UTF-16 cursor",
+      "Java template",
+      "completion preference",
+      "stopwatch"
+    ],
+    "powerDefault": false
+  },
+  "22192f2": {
+    "before": "1.4.1",
+    "after": "1.5.0",
+    "id": "mabfdombglhmfnjklbnoglebinejifdi",
+    "preserved": [
+      "draft",
+      "cursor",
+      "scroll",
+      "template",
+      "compiler",
+      "theme",
+      "upstream cases"
+    ],
+    "powerDefault": false
+  },
+  "restart": [
+    {
+      "phase": "base",
+      "chrome": "158.0.8127.37",
+      "extensionId": "mabfdombglhmfnjklbnoglebinejifdi",
+      "source": "f5fd0b4"
+    },
+    {
+      "phase": "polish",
+      "dark": true,
+      "minimap": true,
+      "spaces": true,
+      "code": "// 저장됨 🙂\r\nint main(){}",
+      "pos": {
+        "lineNumber": 2,
+        "column": 5
+      },
+      "wrap": "off"
+    },
+    {
+      "phase": "restart",
+      "dark": true,
+      "minimap": true,
+      "spaces": true,
+      "code": "// 저장됨 🙂\r\nint main(){}",
+      "pos": {
+        "lineNumber": 2,
+        "column": 5
+      },
+      "wrap": "on"
+    }
+  ]
+}

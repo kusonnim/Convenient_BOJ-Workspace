@@ -1,0 +1,19 @@
+{
+  "cycles": [
+    {
+      "reopenReadyMs": 1848,
+      "workingSetKiB": 108660
+    },
+    {
+      "reopenReadyMs": 1360,
+      "workingSetKiB": 101592
+    },
+    {
+      "reopenReadyMs": 1354,
+      "workingSetKiB": 101988
+    }
+  ],
+  "serversAfterClose": 0,
+  "helpersAfterClose": 0,
+  "workspacesAfterClose": 0
+}
