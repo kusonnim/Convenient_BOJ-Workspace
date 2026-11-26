@@ -166,7 +166,7 @@ chrome.tabs.onUpdated.addListener((tabId, change) => { if (change.status === 'lo
 // A(문제 + 분할 화면)에서 [제출] → 같은 창의 A 바로 옆에 제출 탭 B를 연다.
 // B에서 제출하면(채점 현황으로 넘어가면) A 탭으로 돌아오고,
 // B는 뒤에서 채점 결과를 읽어 A에 전달한 뒤 채점이 끝나면 닫는다.
-importScripts('shared/stopwatch.js', 'shared/submission-sessions.js', 'shared/case-storage.js');
+importScripts('/shared/stopwatch.js', '/shared/submission-sessions.js', '/shared/case-storage.js');
 
 // ───────── 내 PC 실행 도우미 연결 ─────────
 // 분할 화면(콘텐츠 스크립트)과 PC 도우미(host/cboj_host.py) 사이에서 메시지를 그대로 전달한다.
@@ -268,7 +268,7 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
-importScripts('shared/analysis-port.js');
+importScripts('/shared/analysis-port.js');
 
 const HANDLERS = {
   'cboj:timer': (msg, sender) => problemSender(sender) && ['read', 'auto', 'start', 'pause', 'reset'].includes(msg.action)

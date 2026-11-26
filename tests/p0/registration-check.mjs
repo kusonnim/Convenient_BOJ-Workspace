@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { extensionWorker } from './extension-worker.mjs';
 
 const expected = process.argv[2];
 assert.ok(['installed', 'missing'].includes(expected), 'Use installed or missing');
@@ -12,10 +13,10 @@ const context = await chromium.launchPersistentContext('', {
 });
 try {
   const cdp = await context.browser().newBrowserCDPSession();
-  const { id } = await cdp.send('Extensions.loadUnpacked', { path: fileURLToPath(new URL('../../', import.meta.url)) });
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  const { id } = await cdp.send('Extensions.loadUnpacked', { path: root });
   assert.equal(id, 'mabfdombglhmfnjklbnoglebinejifdi');
-  const isRunner = w => w.url() === 'chrome-extension://' + id + '/background.js';
-  const worker = context.serviceWorkers().find(isRunner) || await context.waitForEvent('serviceworker', { predicate: isRunner });
+  const worker = await extensionWorker(context, root, id);
   const response = await worker.evaluate(async () => {
     try { return await chrome.runtime.sendNativeMessage('com.convenient_boj.runner', { type: 'info', protocol: 2 }); }
     catch (error) { return error.message; }

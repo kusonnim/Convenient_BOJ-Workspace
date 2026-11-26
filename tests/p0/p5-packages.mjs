@@ -6,7 +6,8 @@ import { mkdir, mkdtemp, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
-import { extensionId, origin } from './chrome-fixture.mjs';
+import { extensionWorker } from './extension-worker.mjs';
+import { editorFrame, extensionId, origin } from './chrome-fixture.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url)), root = path.resolve(here, '../..');
 const output = path.resolve(process.argv[2] || 'dist');
@@ -55,21 +56,20 @@ for (const store of [false, true]) {
     const cdp = await ctx.browser().newBrowserCDPSession();
     const { id } = await cdp.send('Extensions.loadUnpacked', { path: unpacked });
     if (store) assert.notEqual(id, extensionId); else assert.equal(id, extensionId);
-    const sw = ctx.serviceWorkers().find(w => w.url().endsWith('/background.js')) || await ctx.waitForEvent('serviceworker');
+    const sw = await extensionWorker(ctx, unpacked, id);
     assert.equal(await sw.evaluate(() => chrome.runtime.id), id);
     await sw.evaluate(async () => {
       chrome.runtime.connectNative = () => { throw Error('Package smoke fixture'); };
       await chrome.storage.sync.set({ lastLangId: '93' });
     });
     const page = await ctx.newPage(); await page.goto(origin + '/problem/1000'); await page.locator('.cboj-toggle').click();
-    const frame = page.frameLocator('iframe[title="코드 편집기"]');
+    const frame = await editorFrame(page, id);
     await frame.locator('.view-lines').filter({ hasText: 'BufferedReader' }).waitFor();
-    const f = page.frames().find(x => x.url().startsWith('chrome-extension://' + id + '/editor/frame.html'));
-    assert.deepEqual(await f.evaluate(async () => {
+    assert.deepEqual(await frame.evaluate(async () => {
       const { editor } = await import('/vendor/monaco/editor.js'), model = editor.getModels()[0];
       return [model.getLanguageId(), model.uri.path];
     }), ['java', '/ConvenientBOJ/1000/Main.java']);
-    await f.evaluate(async () => {
+    await frame.evaluate(async () => {
       const { editor } = await import('/vendor/monaco/editor.js'), v = editor.getEditors()[0];
       v.setValue('class LocalPackageFixture {}\nLocalPa');
       v.setPosition({ lineNumber: 2, column: 8 }); v.focus();

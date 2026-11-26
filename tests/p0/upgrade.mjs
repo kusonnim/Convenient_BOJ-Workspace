@@ -5,6 +5,7 @@ import { cp, mkdir, mkdtemp, readFile, rename, writeFile } from 'node:fs/promise
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { extensionWorker } from './extension-worker.mjs';
 import { extensionId, openPanel } from './chrome-fixture.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const from = process.argv[2] || 'f5fd0b4';
@@ -28,8 +29,7 @@ async function installed(stage) {
       ? r.fulfill({ path:path.join(root,'tests/p0/fixtures/problem.html'), contentType:'text/html; charset=utf-8' }) : r.abort());
     const cdp = await context.browser().newBrowserCDPSession();
     assert.equal((await cdp.send('Extensions.loadUnpacked', { path:pkg })).id, extensionId);
-    const match = w => w.url().startsWith('chrome-extension://' + extensionId);
-    const sw = context.serviceWorkers().find(match) || await context.waitForEvent('serviceworker',{predicate:match});
+    const sw = await extensionWorker(context, pkg, extensionId);
     const version = await sw.evaluate(() => chrome.runtime.getManifest().version);
     await sw.evaluate(() => { chrome.runtime.connectNative = () => { throw Error('Offline upgrade fixture'); }; });
     if (stage === 'old') {
@@ -76,5 +76,7 @@ await rename(pkg, path.join(dir, 'original-extension'));
 await mkdir(pkg);
 for (const file of files) await cp(path.join(root,file),path.join(pkg,file),{recursive:true});
 const after = await installed('new');
-const result = { before, after, id:extensionId, preserved:['draft','cursor','scroll','template','compiler','theme','upstream cases'], powerDefault:false };
+const preserved = ['draft','cursor','scroll','template','compiler','theme','upstream cases'];
+if (from === 'cfb8499') preserved.push('Java CRLF draft and UTF-16 cursor','Java template','completion preference','stopwatch');
+const result = { before, after, id:extensionId, preserved, powerDefault:false };
 await writeFile(path.join(out,'upgrade.json'),JSON.stringify(result,null,2)+'\n'); console.log(result);

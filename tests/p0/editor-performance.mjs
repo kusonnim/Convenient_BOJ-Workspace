@@ -1,4 +1,5 @@
 import { chromium } from 'playwright-core';
+import { extensionWorker } from './extension-worker.mjs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { performance } from 'node:perf_hooks';
 import path from 'node:path';
@@ -22,7 +23,7 @@ for (let trial = 0; trial < 3; trial++) {
     const browser = await context.browser().newBrowserCDPSession();
     const loaded = await browser.send('Extensions.loadUnpacked', { path: root });
     if (loaded.id !== id) throw Error('Extension ID mismatch');
-    const sw = context.serviceWorkers().find(w => w.url().endsWith('/background.js')) || await context.waitForEvent('serviceworker');
+    const sw = await extensionWorker(context, root, id);
     await sw.evaluate(async phase => {
       if (['p3','p4','p42','p5'].includes(phase)) await chrome.storage.local.set({ runnerChoice: 'wandbox' });
       else chrome.runtime.connectNative = () => { throw Error('Offline timing fixture'); };
