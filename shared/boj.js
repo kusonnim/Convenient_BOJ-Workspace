@@ -1,6 +1,6 @@
 // 백준(acmicpc.net) 화면에 의존하는 부분을 모아 둔 곳.
 // 백준이 화면 구조를 바꾸면 여기만 고치면 되도록, 선택자와 읽는 함수를 한곳에 둔다.
-// (content/submit-main.js는 페이지 world에서 돌아서 이 파일을 못 읽으므로, submit.js가 선택자를 메시지로 넘겨준다)
+// 제출 양식의 두 world는 shared/submit-selectors.js를 함께 사용한다.
 
 globalThis.CBOJ_SEL = Object.freeze({
   // 문제 페이지 (/problem/번호)
@@ -11,15 +11,6 @@ globalThis.CBOJ_SEL = Object.freeze({
     sampleInputPrefix: 'sample-input-',
     sampleOutputPrefix: 'sample-output-',     // 예제 출력 (id = sample-output-번호)
     username: 'meta[name="username"]',        // 로그인한 아이디
-  }),
-  // 제출 페이지 (/submit/번호)
-  submit: Object.freeze({
-    form: '#submit_form',
-    language: 'select[name="language"]',
-    codeOpen: 'input[name="code_open"]',
-    editor: '.CodeMirror',
-    source: 'textarea[name="source"]',
-    buttons: 'button, input[type="submit"]',
   }),
   // 채점 현황 (/status)
   status: Object.freeze({

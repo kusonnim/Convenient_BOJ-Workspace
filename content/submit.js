@@ -7,9 +7,9 @@
   globalThis.__cbojSubmitLoaded = true;
   const PID = m[1];
   const ext = globalThis.chrome;
-  const S = globalThis.CBOJ_SEL.submit; // 백준 제출 페이지 선택자 (shared/boj.js)
+  const S = CBOJ_SUBMIT_SELECTORS;
 
-  const sel = document.querySelector(S.language);
+  const sel = (document.querySelector(S.form) || document).querySelector(S.language);
   if (sel) {
     const langs = [...sel.options].filter((o) => o.value !== '').map((o) => ({ id: o.value, name: o.textContent.trim() }));
     if (langs.length) ext.storage.local.set({ cbojLangs: langs });
@@ -40,10 +40,9 @@
   function fill(p) {
     let done = false;
     const onMsg = (e) => {
-      if (e.source !== window || !e.data || e.data.cboj !== 'filled' || done) return;
+      if (e.source !== window || e.origin !== location.origin || !e.data || e.data.cboj !== 'filled' || done) return;
       done = true;
-      clearInterval(timer);
-      removeEventListener('message', onMsg);
+      cleanup();
       const r = e.data;
       ext.runtime.sendMessage({ type: 'cboj:filled', langOk: r.langOk === true }).catch(() => {});
       if (!r.ok) { banner('warn', 'Convenient BOJ: 코드를 넣지 못했어요. 클립보드에 복사해 두었으니 붙여넣어 주세요.'); navigator.clipboard?.writeText(p.code).catch(() => {}); return; }
@@ -58,10 +57,16 @@
       }
     };
     addEventListener('message', onMsg);
-    const send = () => window.postMessage({ cboj: 'fill', code: p.code, langId: p.langId, codeOpen: p.codeOpen }, location.origin);
+    const send = () => window.postMessage({ cboj: 'fill', code: p.code, langId: p.langId, langName: p.langName || '', codeOpen: p.codeOpen || 'default' }, location.origin);
     const timer = setInterval(send, 300);
+    const deadline = setTimeout(cleanup, 6000);
+    function cleanup() {
+      clearInterval(timer); clearTimeout(deadline);
+      removeEventListener('message', onMsg);
+      removeEventListener('pagehide', cleanup);
+    }
+    addEventListener('pagehide', cleanup, { once: true });
     send();
-    setTimeout(() => clearInterval(timer), 6000);
   }
 
   // 분할 화면이 연 제출 탭(B)인지 백그라운드에 확인하고, 2분 안에 만든 제출 요청만 채운다.

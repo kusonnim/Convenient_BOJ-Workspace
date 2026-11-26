@@ -24,7 +24,7 @@ const finished = p => expect(p.locator('.cboj-toolbar .run')).toHaveText('â–¶ ì‹
 
 test('registered MSVC, samples, UTF-8, cache identity, diagnostics and explicit GCC', async ({ lab }, t) => {
   const info = await lab.worker.evaluate(name => chrome.runtime.sendNativeMessage(name, { type: 'info', protocol: 2 }), process.env.CBOJ_P41_HOST || 'com.convenient_boj.runner');
-  expect(info).toMatchObject({ protocol: 2, version: '2.0.0', msvcStandards: ['c++17', 'c++20'] });
+  expect(info).toMatchObject({ protocol: 2, version: '2.1.0', msvcStandards: ['c++17', 'c++20'] });
   expect(info.msvc).toMatch(/^\d+$/);
   const p = await problem(lab);
   await openPanel(p);

@@ -13,7 +13,7 @@ async function start() {
     if (closed || !Number.isSafeInteger(m?.generation)) return;
     let state;
     if (m.type === 'open') {
-      if (typeof m.doc?.code !== 'string' || !/^\d+$/.test(m.doc.problem) || !['cpp', 'c', 'python'].includes(m.doc.language)) {
+      if (typeof m.doc?.code !== 'string' || !/^\d+$/.test(m.doc.problem) || !['cpp', 'c', 'java', 'python'].includes(m.doc.language)) {
         throw Error('문제 번호와 편집 언어를 확인해 주세요.');
       }
       const { MonacoWorkspace } = await import('./monaco-adapter.js');

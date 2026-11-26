@@ -62,6 +62,19 @@ function Find-Gpp {
   return $null
 }
 
+function Find-Javac {
+  $cmd = Get-Command javac -CommandType Application -ErrorAction SilentlyContinue
+  $candidates = @()
+  if ($env:JAVA_HOME) { $candidates += Join-Path $env:JAVA_HOME 'bin\javac.exe' }
+  if ($cmd) { $candidates += $cmd.Source }
+  foreach ($base in 'Eclipse Adoptium', 'Microsoft', 'Java', 'Zulu') {
+    $candidates += Get-ChildItem "$env:ProgramFiles\$base\*jdk*\bin\javac.exe" -ErrorAction SilentlyContinue | ForEach-Object FullName
+  }
+  foreach ($file in $candidates) {
+    if ((Test-Path -LiteralPath $file) -and (Test-Path -LiteralPath (Join-Path (Split-Path $file) 'java.exe'))) { return $file }
+  }
+}
+
 function Install-WithWinget($id, $label) {
   if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
     Write-Warn "winget이 없어서 $label 을(를) 자동으로 설치할 수 없어요. 직접 설치한 뒤 다시 실행해 주세요."
@@ -112,6 +125,14 @@ if (-not $gpp -and -not $vs -and -not $RegisterOnly) {
   }
 }
 if ($gpp) { Write-Ok "g++: $gpp" }
+
+Write-Step 'Java JDK 확인'
+$javac = Find-Javac
+if (-not $javac -and -not $RegisterOnly -and (Confirm-Action 'Java 실행용 Temurin JDK 21을 설치할까요?')) {
+  Install-WithWinget 'EclipseAdoptium.Temurin.21.JDK' 'Temurin JDK 21' | Out-Null
+  $javac = Find-Javac
+}
+if ($javac) { Write-Ok "javac: $javac" } else { Write-Warn 'Java 로컬 실행에는 JDK가 필요해요. 다른 언어는 계속 사용할 수 있어요.' }
 
 # 3) 도우미 복사·등록
 Write-Step '도우미 설치'

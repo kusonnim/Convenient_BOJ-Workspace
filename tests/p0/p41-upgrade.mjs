@@ -4,6 +4,7 @@ import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { extensionWorker } from './extension-worker.mjs';
 import { editorFrame, extensionId, openPanel, origin } from './chrome-fixture.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url)), root = path.resolve(here, '../..');
@@ -32,7 +33,7 @@ for (const phase of ['base', 'polish', 'restart']) {
       ? route.fulfill({ path: path.join(here, 'fixtures/problem.html'), contentType: 'text/html; charset=utf-8' }) : route.abort());
     const devtools = await ctx.browser().newBrowserCDPSession();
     assert.equal((await devtools.send('Extensions.loadUnpacked', { path: stage })).id, extensionId);
-    const worker = ctx.serviceWorkers().find(w => w.url().endsWith('/background.js')) || await ctx.waitForEvent('serviceworker');
+    const worker = await extensionWorker(ctx, stage, extensionId);
     await worker.evaluate(() => { chrome.runtime.connectNative = () => { throw Error('Offline upgrade fixture'); }; });
     if (phase === 'base') await worker.evaluate(async ({ sync, local }) => {
       await chrome.storage.sync.set(sync); await chrome.storage.local.set(local);

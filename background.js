@@ -15,10 +15,12 @@ const FALLBACK = {
   clangc: 'clang-17.0.1-c',
   clangcpp: 'clang-17.0.1',
   python: 'cpython-3.13.18',
+  java: 'openjdk-jdk-21+35',
 };
 const DAY = 24 * 60 * 60 * 1000;
-
+const CACHE_KEY = 'wandboxCompilers2';
 let compilerCache = null;
+let loadingCompilers;
 
 function versionKey(name) {
   return (name.match(/\d+/g) || []).map(Number);
@@ -34,12 +36,13 @@ function newest(names) {
   })[0];
 }
 
-async function compilers() {
-  if (compilerCache) return compilerCache;
-  const saved = (await chrome.storage.local.get('wandboxCompilers')).wandboxCompilers;
-  if (saved && Date.now() - saved.at < DAY) return (compilerCache = saved.map);
+async function discoverCompilers() {
+  const saved = (await chrome.storage.local.get(CACHE_KEY))[CACHE_KEY];
+  if (saved && Date.now() - saved.at < DAY) return { at: saved.at, map: { ...FALLBACK, ...saved.map } };
   try {
-    const list = await (await fetch(WANDBOX + '/list.json')).json();
+    const res = await fetch(WANDBOX + '/list.json', { credentials: 'omit', redirect: 'error', signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw Error();
+    const list = await res.json();
     const names = list.map((c) => c.name);
     const pick = (re) => newest(names.filter((n) => re.test(n)));
     const map = {
@@ -48,20 +51,48 @@ async function compilers() {
       clangc: pick(/^clang-\d+\.\d+\.\d+-c$/),
       clangcpp: pick(/^clang-\d+\.\d+\.\d+$/),
       python: pick(/^cpython-3\.\d+\.\d+$/),
+      java: pick(/^openjdk-jdk-\d+[\w.+-]*$/),
     };
     for (const k in FALLBACK) map[k] = map[k] || FALLBACK[k];
-    await chrome.storage.local.set({ wandboxCompilers: { at: Date.now(), map } });
-    return (compilerCache = map);
+    const entry = { at: Date.now(), map };
+    await chrome.storage.local.set({ [CACHE_KEY]: entry });
+    return entry;
   } catch {
-    return FALLBACK;
+    return { at: Date.now() - DAY + 60000, map: FALLBACK };
   }
 }
 
-async function run({ lang, code, stdin }) {
+async function compilers() {
+  if (!compilerCache || Date.now() - compilerCache.at >= DAY) {
+    loadingCompilers ||= discoverCompilers().finally(() => { loadingCompilers = null; });
+    compilerCache = await loadingCompilers;
+  }
+  return compilerCache.map;
+}
+
+const retryStatus = new Set([429, 500, 502, 503, 504]);
+function delay(ms, signal) {
+  return new Promise((resolve, reject) => {
+    signal.throwIfAborted();
+    const abort = () => { clearTimeout(timer); reject(signal.reason); };
+    const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, ms);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+}
+
+async function run({ lang, code, stdin }, signal) {
   const map = await compilers();
   let compiler, options = [];
+  const payload = { code, stdin, save: false };
   if (lang.kind === 'python') {
     compiler = map.python;
+  } else if (lang.kind === 'java') {
+    compiler = map.java;
+    // Wandbox invokes javac prog.java. Supply the BOJ file as a named source
+    // so public classes, comments, text blocks and diagnostic lines stay intact.
+    payload.code = '// Main.java\n';
+    payload.codes = [{ file: 'Main.java', code }];
+    options = [...(lang.release ? ['--release', String(lang.release)] : []), 'Main.java'];
   } else if (lang.kind === 'c') {
     compiler = lang.clang ? map.clangc : map.c;
     options = ['-O2', '-std=' + (lang.std || 'gnu11'), '-DONLINE_JUDGE', '-DBOJ', '-lm'];
@@ -70,41 +101,72 @@ async function run({ lang, code, stdin }) {
     options = ['-O2', '-std=' + (lang.std || 'gnu++17'), '-DONLINE_JUDGE', '-DBOJ'];
   }
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 40000);
+  const body = JSON.stringify({ ...payload, compiler, 'compiler-option-raw': options.join('\n') });
   const started = Date.now();
+  let error, retryAfter = 0;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await delay(Math.max(800 * attempt, retryAfter), signal);
+    signal.throwIfAborted();
+    const timeout = new AbortController();
+    const timer = setTimeout(() => timeout.abort(), 40000);
+    try {
+      const res = await fetch(WANDBOX + '/compile.json', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'omit', redirect: 'error',
+        body, signal: AbortSignal.any([signal, timeout.signal]),
+      });
+      if (!res.ok) {
+        error = httpError(res.status);
+        if (!retryStatus.has(res.status)) return { ok: false, error, compiler };
+        const after = res.headers.get('Retry-After');
+        retryAfter = /^\d+$/.test(after) ? Number(after) * 1000 : Math.max(0, Date.parse(after) - Date.now()) || 0;
+        if (retryAfter > 10000) break;
+        continue;
+      }
+      const j = await res.json();
+      if (j == null || (j.status == null && !j.signal)) throw new SyntaxError();
+      const file = { c: 'main.c', cpp: 'main.cpp', python: 'main.py', java: 'Main.java' }[lang.kind];
+      return { ok: true, compiler, options, status: String(j.status ?? ''), signal: j.signal || '',
+        compileError: String(j.compiler_error || '').replace(/\bprog\.(?:cc|c|cpp|java|py)\b/g, file),
+        stdout: j.program_output || '', stderr: j.program_error || '', ms: Date.now() - started };
+    } catch (e) {
+      signal.throwIfAborted();
+      if (timeout.signal.aborted || e.name === 'AbortError') return { ok: false, error: '실행 시간이 너무 오래 걸려 중단했어요 (40초).', compiler };
+      if (e instanceof SyntaxError) return { ok: false, error: 'Wandbox 실행 결과를 읽지 못했어요.', compiler };
+      error = '실행 서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.';
+    } finally { clearTimeout(timer); }
+  }
+  return { ok: false, error: error + ' (내 PC 실행 도우미로 오프라인 실행 가능)', compiler };
+}
+
+const remoteJobs = new Map();
+let remoteLane = 0;
+async function remoteRun(msg, tabId) {
+  const ctrl = new AbortController(), jobs = remoteJobs.get(tabId) || new Set();
+  remoteJobs.set(tabId, jobs);
+  jobs.add(ctrl);
   try {
-    const res = await fetch(WANDBOX + '/compile.json', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ compiler, code, stdin: stdin || '', 'compiler-option-raw': options.join('\n'), save: false }),
-      signal: ctrl.signal,
-    });
-    if (!res.ok) return { ok: false, error: httpError(res.status), compiler };
-    const j = await res.json();
-    return {
-      ok: true,
-      compiler,
-      options,
-      status: j.status,
-      signal: j.signal || '',
-      compileError: j.compiler_error || '',
-      stdout: j.program_output || '',
-      stderr: j.program_error || '',
-      ms: Date.now() - started,
-    };
+    const lane = remoteLane;
+    remoteLane = (remoteLane + 1) % 3;
+    return await navigator.locks.request('cboj-wandbox-' + lane, { signal: ctrl.signal }, () => run(msg, ctrl.signal));
   } catch (e) {
-    return { ok: false, error: e.name === 'AbortError' ? '실행 시간이 너무 오래 걸려 중단했어요 (40초).' : '실행 서버에 연결하지 못했어요.', compiler };
+    if (!ctrl.signal.aborted) throw e;
+    return { ok: false, error: '실행을 중지했어요.' };
   } finally {
-    clearTimeout(timer);
+    jobs.delete(ctrl);
+    if (!jobs.size) remoteJobs.delete(tabId);
   }
 }
+function cancelRemote(tabId) {
+  for (const ctrl of remoteJobs.get(tabId) || []) ctrl.abort();
+}
+chrome.tabs.onRemoved.addListener(cancelRemote);
+chrome.tabs.onUpdated.addListener((tabId, change) => { if (change.status === 'loading') cancelRemote(tabId); });
 
 // ───────── 제출 탭 관리 ─────────
 // A(문제 + 분할 화면)에서 [제출] → 같은 창의 A 바로 옆에 제출 탭 B를 연다.
 // B에서 제출하면(채점 현황으로 넘어가면) A 탭으로 돌아오고,
 // B는 뒤에서 채점 결과를 읽어 A에 전달한 뒤 채점이 끝나면 닫는다.
-importScripts('shared/submission-sessions.js', 'shared/case-storage.js');
+importScripts('/shared/stopwatch.js', '/shared/submission-sessions.js', '/shared/case-storage.js');
 
 // ───────── 내 PC 실행 도우미 연결 ─────────
 // 분할 화면(콘텐츠 스크립트)과 PC 도우미(host/cboj_host.py) 사이에서 메시지를 그대로 전달한다.
@@ -123,9 +185,10 @@ function bytes(value) {
 }
 function validProgram(m) {
   const kind = m.lang?.kind;
-  if (bytes(m.code) > runnerLimit || !['c', 'cpp', 'python'].includes(kind)) return false;
+  if (bytes(m.code) > runnerLimit || !['c', 'cpp', 'java', 'python'].includes(kind)) return false;
+  if (m.lang.release !== undefined && !(kind === 'java' && Number.isInteger(m.lang.release) && m.lang.release >= 8 && m.lang.release <= 99)) return false;
   if (m.lang.std === undefined) return true;
-  if (kind === 'python' || typeof m.lang.std !== 'string') return false;
+  if (!['c', 'cpp'].includes(kind) || typeof m.lang.std !== 'string') return false;
   const standards = kind === 'c' ? /^(gnu|c)(90|99|11|17|2x|23)$/ : /^(gnu|c)\+\+(98|03|11|14|17|20|23|2c)$/;
   return standards.test(m.lang.std);
 }
@@ -136,6 +199,8 @@ function validNative(m) {
   if (m.type === 'kill' || m.type === 'eof') return true;
   if (m.type === 'stdin') return bytes(m.data) <= runnerLimit;
   if (!['run', 'batch'].includes(m.type) || !validProgram(m)) return false;
+  if (m.stackSizeMiB !== undefined && !(['c', 'cpp'].includes(m.lang.kind) && Number.isInteger(m.stackSizeMiB)
+      && m.stackSizeMiB >= 1 && m.stackSizeMiB <= 512)) return false;
   if (m.compiler !== undefined && !['msvc', 'gcc', 'auto'].includes(m.compiler)) return false;
   if (m.timeLimit !== undefined && !(Number.isFinite(m.timeLimit) && m.timeLimit >= 0.05 && m.timeLimit <= 300)) return false;
   if (m.type === 'run') return bytes(m.stdin ?? '') <= runnerLimit;
@@ -203,14 +268,17 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 });
 
-importScripts('shared/analysis-port.js');
+importScripts('/shared/analysis-port.js');
 
 const HANDLERS = {
+  'cboj:timer': (msg, sender) => problemSender(sender) && ['read', 'auto', 'start', 'pause', 'reset'].includes(msg.action)
+    ? stopwatch.change(new URL(sender.url).pathname.split('/')[2], msg.action) : null,
   'cboj:case-edit': caseStorage,
   'cboj:editor-tab': (_msg, sender) => sender.id === chrome.runtime.id && sender.frameId > 0
     && sender.url?.split('#')[0] === chrome.runtime.getURL('editor/frame.html') ? sender.tab?.id : null,
   'cboj:run': (msg, sender) => problemSender(sender) && msg.remoteConfirmed === true && validProgram(msg) && bytes(msg.stdin) <= runnerLimit
-    ? run(msg) : { ok: false, error: 'Wandbox 전송 동의와 실행 요청을 확인해 주세요.' },
+    ? remoteRun(msg, sender.tab.id) : { ok: false, error: 'Wandbox 전송 동의와 실행 요청을 확인해 주세요.' },
+  'cboj:cancel-remote': (_msg, sender) => { if (problemSender(sender)) cancelRemote(sender.tab.id); },
   'cboj:open-submit': submissionSessions.open,
   'cboj:claim-submit': submissionSessions.form,
   'cboj:filled': submissionSessions.form,

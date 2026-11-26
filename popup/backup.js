@@ -4,8 +4,9 @@
   const localKeys = ['runnerChoice', 'cbojLayout', 'workspaceSnippets'];
   const syncKeys = [...Object.keys(CBOJ_POLISH.defaults), 'splitAutoOpen', 'editorTheme', 'editorMinimap',
     'indent', 'codeOpen', 'templates', 'lastLangId', 'lastLangName', 'powerMode', 'powerPreset', 'powerIntensity', 'powerShake', 'shortcutProfile'];
-  const draftKey = /^draft:\d{1,12}:(?:cpp|c|py)$/;
+  const draftKey = /^draft:\d{1,12}:(?:cpp|c|java|py)$/;
   const caseKey = /^cases:\d{1,12}$/;
+  const timerKey = /^timer:\d{1,12}$/;
   const selectionKey = /^selectedCase:\d{1,12}$/;
   const tabKey = /^panelTab:\d{1,12}$/;
   const recordId = v => typeof v === 'string' && /^[a-z0-9-]{1,80}$/i.test(v);
@@ -22,7 +23,7 @@
   function validSync(key, v) {
     if (Object.hasOwn(CBOJ_POLISH.defaults, key)) return CBOJ_POLISH.valid(key, v);
     if (key === 'editorTheme') return typeof v === 'string' && Object.hasOwn(CBOJ_PALETTES, v);
-    if (key === 'templates') return exact(v, ['cpp', 'c', 'py']) && Object.values(v).every(t => typeof t === 'string');
+    if (key === 'templates') return exact(v, ['cpp', 'c', 'java', 'py']) && Object.values(v).every(t => typeof t === 'string');
     if (key === 'indent') return ['tab', 'space'].includes(v);
     if (key === 'codeOpen') return ['default', 'open', 'close', 'onlyaccepted'].includes(v);
     if (key === 'lastLangId') return typeof v === 'string' && /^\d{1,8}$/.test(v);
@@ -47,10 +48,11 @@
       && /^[A-Za-z_]\w{0,47}$/.test(s.prefix) && typeof s.body === 'string' && s.body.length > 0 && s.body.length <= 16384;
   }
   function validLocal(key, v) {
+    if (timerKey.test(key)) return exact(v, ['elapsed', 'since', 'solved']) && stopwatch.valid(v);
     if (caseKey.test(key)) return validRecords(v, ['id'], validCase);
     if (selectionKey.test(key)) return recordId(v) || typeof v === 'string' && /^sample:\d{1,12}$/.test(v);
     if (tabKey.test(key)) return ['result', 'term', 'cases', 'problems'].includes(v);
-    if (key === 'workspaceSnippets') return exact(v, ['cpp', 'c', 'py'])
+    if (key === 'workspaceSnippets') return exact(v, ['cpp', 'c', 'java', 'py'])
       && Object.values(v).every(rows => validRecords(rows, ['id', 'prefix'], validSnippet) && rows.length <= 100);
     if (key === 'runnerChoice') return ['auto', 'msvc', 'gcc', 'wandbox'].includes(v);
     if (key === 'cbojLayout') return exact(v, ['width', 'bottom', 'collapsed', 'maximized'])
@@ -86,7 +88,7 @@
   async function snapshot() {
     const area = chrome.storage.local;
     const keys = area.getKeys ? await area.getKeys() : Object.keys(await area.get(null));
-    const [local, sync] = await Promise.all([area.get(keys.filter(k => localKeys.includes(k) || [draftKey, caseKey, selectionKey, tabKey].some(pattern => pattern.test(k)))), chrome.storage.sync.get(syncKeys)]);
+    const [local, sync] = await Promise.all([area.get(keys.filter(k => localKeys.includes(k) || [draftKey, caseKey, timerKey, selectionKey, tabKey].some(pattern => pattern.test(k)))), chrome.storage.sync.get(syncKeys)]);
     return { format: FORMAT, version: 1, local, sync };
   }
   async function download() {
@@ -165,7 +167,7 @@
       if (replace && conflicts && !confirm('기존 값 ' + conflicts + '개를 백업 내용으로 교체할까요?')) { status.textContent = '복원을 취소했어요.'; return; }
       if (patch.local.runnerChoice === 'wandbox' && !confirm('Wandbox를 복원하면 실행 시 코드와 입력을 외부 서비스로 전송해요. 적용할까요?')) delete patch.local.runnerChoice;
       await navigator.locks.request('cboj-cases', () => navigator.locks.request('cboj-snippets', async () => {
-        await apply(current, patch, replace, conflicts, skipped);
+        await navigator.locks.request('cboj-timers', () => apply(current, patch, replace, conflicts, skipped));
       }));
     });
   }

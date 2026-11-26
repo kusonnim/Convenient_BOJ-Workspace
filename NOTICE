@@ -1,0 +1,6 @@
+Convenient BOJ Workspace extends Convenient BOJ by gaudium1257.
+Original project: https://github.com/gaudium1257/Convenient_BOJ
+Workspace fork: https://github.com/kusonnim/Convenient_BOJ-Workspace
+
+Monaco Editor, its dependencies, Codicons and the bundled theme definitions
+carry their respective notices under vendor/monaco and vendor/themes.

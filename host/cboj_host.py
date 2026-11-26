@@ -83,7 +83,7 @@ def validate(msg):
     if kind not in ('batch', 'run'):
         return
     lang = msg.get('lang')
-    if not isinstance(lang, dict) or lang.get('kind') not in ('c', 'cpp', 'python'):
+    if not isinstance(lang, dict) or lang.get('kind') not in ('c', 'cpp', 'python', 'java'):
         raise ValueError('지원하지 않는 언어예요.')
     std = lang.get('std')
     patterns = {'c': r'(?:gnu|c)(?:90|99|11|17|2x|23)', 'cpp': r'(?:gnu|c)\+\+(?:98|03|11|14|17|20|23|2c)'}
@@ -91,6 +91,11 @@ def validate(msg):
         raise ValueError('지원하지 않는 언어 표준이에요.')
     if msg.get('compiler', 'auto') not in ('auto', 'gcc', 'msvc'):
         raise ValueError('지원하지 않는 컴파일러예요.')
+    if 'release' in lang and (lang['kind'] != 'java' or type(lang['release']) is not int or not 8 <= lang['release'] <= 99):
+        raise ValueError('Java 버전을 확인해 주세요.')
+    if 'stackSizeMiB' in msg and (not WINDOWS or lang['kind'] not in ('c', 'cpp') or
+                                 type(msg['stackSizeMiB']) is not int or not 1 <= msg['stackSizeMiB'] <= 512):
+        raise ValueError('Windows C/C++ 스택 크기는 1~512 MiB예요.')
     byte_length(msg.get('code'), SOURCE_LIMIT)
     limit = msg.get('timeLimit', 10)
     if type(limit) not in (int, float) or not 0.05 <= limit <= 300:

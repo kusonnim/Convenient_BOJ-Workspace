@@ -8,13 +8,15 @@ globalThis.CBOJ_DEFAULTS = Object.freeze({
   shortcutProfile: 'classic',
   indent: 'tab', // tab(탭 문자) | space(공백 4칸)
   codeOpen: 'default', // default(백준 설정 따름) | open | close | onlyaccepted
-  templates: {}, // 사용자가 바꾼 기본 코드 { cpp, c, py } (비어 있으면 아래 기본값)
+  templates: {}, // 사용자가 바꾼 기본 코드 { cpp, c, java, py }
 });
 
 // 언어별 기본 코드. $0 은 처음 커서가 놓일 자리.
 globalThis.CBOJ_TEMPLATES = Object.freeze({
   cpp: '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n\n    $0\n    return 0;\n}\n',
   c: '#include <stdio.h>\n\nint main(void) {\n    $0\n    return 0;\n}\n',
+  java: 'import java.io.*;\nimport java.util.*;\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n'
+    + '        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        $0\n    }\n}\n',
   py: '', // 파이썬은 보통 기본 코드 없이 시작한다 (빠른 입력이 필요하면 팝업에서 추가)
 });
 
@@ -25,6 +27,7 @@ globalThis.cbojCppTemplate = (msvc) => msvc
 globalThis.cbojLocalCompiler = (choice, lang, host) => {
   if (!host || choice === 'wandbox') return null;
   if (lang.kind === 'python') return host.python ? 'python' : null;
+  if (lang.kind === 'java') return host.javac ? 'javac' : null;
   if (lang.kind === 'c') return host.gcc ? 'gcc' : null;
   const msvc = host.protocol === 2 && host.msvc;
   if (choice === 'msvc') return msvc ? 'msvc' : null;

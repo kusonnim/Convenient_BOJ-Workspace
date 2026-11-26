@@ -3,9 +3,10 @@
     editorFontFamily: '"D2Coding", "Cascadia Code", Consolas, monospace',
     editorFontSize: 14, editorLineHeight: 22, editorWrap: false,
     editorSticky: true, editorBrackets: true, editorOccurrences: true, editorBreadcrumbs: true,
-    sampleTimeLimit: 10, terminalTimeLimit: 120,
+    sampleTimeLimit: 10, terminalTimeLimit: 120, stackSizeMiB: 256,
+    autocomplete: true, timerAutoStart: false,
   });
-  const bounds = { editorFontSize: [10, 32], editorLineHeight: [12, 56], sampleTimeLimit: [1, 300], terminalTimeLimit: [1, 300] };
+  const bounds = { editorFontSize: [10, 32], editorLineHeight: [12, 56], sampleTimeLimit: [1, 300], terminalTimeLimit: [1, 300], stackSizeMiB: [1, 512] };
   function valid(key, value) {
     if (key === 'editorFontFamily') return typeof value === 'string' && value.trim().length > 0 && value.length <= 160
       && !/[^\p{L}\p{N} ,.'"_()-]/u.test(value);

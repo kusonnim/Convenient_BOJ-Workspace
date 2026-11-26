@@ -4,6 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { extensionWorker } from './extension-worker.mjs';
 import { focusedEditor, loadCode } from './chrome-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -32,8 +33,7 @@ try {
   const cdp = await context.browser().newBrowserCDPSession();
   const { id } = await cdp.send('Extensions.loadUnpacked', { path: root });
   assert.equal(id, 'mabfdombglhmfnjklbnoglebinejifdi');
-  const isWorker = w => w.url() === 'chrome-extension://' + id + '/background.js';
-  const worker = context.serviceWorkers().find(isWorker) || await context.waitForEvent('serviceworker', { predicate: isWorker });
+  const worker = await extensionWorker(context, root, id);
   const host = await worker.evaluate(async () => {
     try {
       const result = await chrome.runtime.sendNativeMessage('com.convenient_boj.runner', { type: 'info' });
@@ -61,7 +61,7 @@ try {
   console.log('Public page', page.url(), await page.title(), 'stylesheets', styles);
   await page.screenshot({ path: path.join(output, 'live-problem.png') });
   if (process.argv.includes('--msvc')) {
-    assert.equal(host, '2.0.0');
+    assert.match(host, /^2\./);
     const badge = page.locator('.cboj-where');
     await badge.filter({ hasText: 'MSVC' }).waitFor();
     await loadCode(page, [

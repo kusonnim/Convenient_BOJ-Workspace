@@ -93,7 +93,7 @@
     const bytes = syncItemBytes('templates', templates);
     if (bytes > SYNC_ITEM_LIMIT) {
       const kb = (n) => (n / 1024).toFixed(1);
-      showState('error', `너무 길어서 저장하지 못했어요 (세 언어 합계 ${kb(bytes)}KB / 최대 8KB)`);
+      showState('error', `너무 길어서 저장하지 못했어요 (언어 합계 ${kb(bytes)}KB / 최대 8KB)`);
       return false;
     }
     try {
@@ -142,6 +142,7 @@
     runnerState.textContent = '';
     if (info) {
       const parts = [`Python ${info.python}`];
+      parts.push(info.javac || 'JDK 없음');
       if (info.msvc) parts.push('MSVC x64 ' + info.msvc);
       if (info.gcc) parts.push('GCC');
       if (info.gpp) parts.push('G++');

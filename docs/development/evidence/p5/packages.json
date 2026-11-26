@@ -1,0 +1,25 @@
+{
+  "packagerCommit": "f0e316e588b047b3d6f9194123196c3805ab1cc2",
+  "gitConfigurationsCompared": [
+    "core.autocrlf=true, core.eol=crlf",
+    "core.autocrlf=false, core.eol=lf"
+  ],
+  "archives": [
+    {
+      "variant": "unpacked",
+      "chrome": "158.0.8127.37",
+      "id": "mabfdombglhmfnjklbnoglebinejifdi",
+      "files": 69,
+      "version": "1.5.0",
+      "sha256": "aeed3f209feacf0a8fdb54533d3a581ec8de8b60cecb9b0deddb2180028115fa"
+    },
+    {
+      "variant": "store",
+      "chrome": "158.0.8127.37",
+      "id": "fbbleefpfkankndjobbmhendmkkhiflc",
+      "files": 58,
+      "version": "1.5.0",
+      "sha256": "b8aaa4bce03bc78f7f36bc7b1cda172b6e4b57da83a4bf9b05234322a1cfcfaf"
+    }
+  ]
+}

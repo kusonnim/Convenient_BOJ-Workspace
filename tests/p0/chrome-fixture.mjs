@@ -2,6 +2,7 @@ import { cp, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect, test as base } from '@playwright/test';
+import { extensionWorker } from './extension-worker.mjs';
 
 export const origin = 'https://www.acmicpc.net';
 export const extensionId = 'mabfdombglhmfnjklbnoglebinejifdi';
@@ -92,9 +93,7 @@ export const test = base.extend({
       const cdp = await context.browser().newBrowserCDPSession();
       const { id } = await cdp.send('Extensions.loadUnpacked', { path: unpacked });
       expect(id).toBe(extensionId);
-      const isWorker = w => w.url() === 'chrome-extension://' + id + '/background.js';
-      const worker = context.serviceWorkers().find(isWorker)
-        || await context.waitForEvent('serviceworker', { predicate: isWorker });
+      const worker = await extensionWorker(context, unpacked, id);
       if (!realHost) await worker.evaluate(installDoubles, process.env.CBOJ_P41_HOST || 'com.convenient_boj.runner');
       await use({ context, worker, nativeTemp });
       expect(badRequests).toEqual([]);
@@ -122,8 +121,8 @@ export async function openPanel(page) {
   await focusedEditor(page);
 }
 
-export async function editorFrame(page) {
-  const match = f => f.url().startsWith('chrome-extension://' + extensionId + '/editor/frame.html');
+export async function editorFrame(page, id = extensionId) {
+  const match = f => f.url().startsWith('chrome-extension://' + id + '/editor/frame.html');
   return page.frames().find(match) || page.waitForEvent('framenavigated', { predicate: match });
 }
 export async function focusedEditor(page) {
