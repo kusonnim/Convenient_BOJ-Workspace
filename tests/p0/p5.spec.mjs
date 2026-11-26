@@ -75,6 +75,42 @@ test('upstream Java drafts, templates, backup, completion preference and managed
   expect((await stored(lab.worker, 'local', 'draft:1001:cpp'))?.code).not.toBe('pub');
 });
 
+test('stack preference reaches capable Windows compilers and an older helper keeps its original messages', async ({ lab }) => {
+  await lab.worker.evaluate(() => {
+    self.fixtureIO.native = {
+      info: [{ type: 'info', version: '2.1.0', protocol: 2, msvc: 'test MSVC', gcc: 'test gcc', gpp: 'test g++', stackSizeMiB: true }],
+      batch: [{ type: 'batch-result', cmd: 'test compiler', results: ['5','9'].map(stdout => ({ stdout, stderr: '', code: 0 })) }],
+    };
+  });
+  const settings = await popup(lab);
+  await settings.locator('.polish-settings summary').click();
+  const stack = settings.locator('#cpp-stack');
+  await expect(stack).toHaveValue('256');
+  await stack.fill('8'); await stack.press('Tab');
+  await expect.poll(() => stored(lab.worker, 'sync', 'stackSizeMiB')).toBe(8);
+  await stack.fill('513'); await stack.press('Tab'); await expect(stack).toHaveValue('8');
+  const p = await problem(lab); await openPanel(p);
+  const run = async page => {
+    await page.locator('.cboj-toolbar .run').click();
+    await expect(page.locator('.cboj-status')).toHaveText('예제 통과');
+    return lab.worker.evaluate(() => self.fixtureIO.nativeCalls.filter(m => m.type === 'batch').at(-1));
+  };
+  expect(await run(p)).toMatchObject({ compiler: 'msvc', stackSizeMiB: 8 });
+  await p.locator('.cboj-lang').selectOption('75'); await expect(p.locator('.cboj-lang')).toBeEnabled();
+  expect(await run(p)).toMatchObject({ compiler: 'gcc', stackSizeMiB: 8 });
+  await lab.worker.evaluate(() => {
+    const info = self.fixtureIO.native.info[0];
+    delete info.stackSizeMiB; info.version = '2.0.0';
+  });
+  const old = await problem(lab, '1001'); await openPanel(old);
+  expect(await run(old)).not.toHaveProperty('stackSizeMiB');
+  await old.locator('.cboj-lang').selectOption('93');
+  await expect(old.locator('.cboj-where')).toContainText('JDK 없음');
+  old.once('dialog', d => d.dismiss()); await old.locator('.cboj-toolbar .run').click();
+  await expect(old.locator('.cboj-status')).toHaveText('중지됨');
+  expect(await lab.worker.evaluate(() => self.fixtureIO.remoteCalls.length)).toBe(0);
+});
+
 test('per-problem stopwatch synchronizes tabs and freezes only on its owned AC', async ({ lab }, t) => {
   await lab.worker.evaluate(() => chrome.storage.local.set({ 'timer:1000': { elapsed: 3723000, since: null, solved: null } }));
   const a = await problem(lab), b = await problem(lab), other = await problem(lab, '1001');
