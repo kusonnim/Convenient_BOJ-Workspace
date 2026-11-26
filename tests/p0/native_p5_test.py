@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -43,6 +44,24 @@ class ParityTools(unittest.TestCase):
             with self.assertRaises(BuildError) as error:
                 self.tools.prepare(dict(type='batch', lang={'kind': 'java'}, code=''), Path(temp), Control())
             self.assertEqual(error.exception.code, 'nocompiler')
+
+    def test_upstream_java_host_on_original_wire(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            prior = Path(tmp) / 'cboj_host.py'
+            prior.write_bytes(subprocess.check_output(['git', 'show', 'cfb8499:host/cboj_host.py'], cwd=HOST.parents[1]))
+            host = HostWire(tmp, prior)
+            try:
+                host.send('info', id=1, protocol=2)
+                info = host.receive()
+                self.assertNotIn('protocol', info)
+                self.assertRegex(info['javac'], r'javac \d')
+                source = 'public class Main { public static void main(String[] a) { System.out.print(System.getProperty("BOJ")); } }'
+                host.send('batch', id=2, lang=dict(kind='java', release=11), code=source, inputs=['', ''])
+                result = host.receive()
+                self.assertEqual(result['type'], 'batch-result')
+                self.assertEqual([(r['stdout'], r['code']) for r in result['results']], [('1', 0), ('1', 0)])
+            finally:
+                host.close()
 
     def test_java_batch_cache_release_errors_and_inputs(self):
         source = ('public class Main { static class Echo { static String read() throws Exception {'
